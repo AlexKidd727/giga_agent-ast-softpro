@@ -19,7 +19,7 @@ import { UseStream } from "@langchain/langgraph-sdk/dist/react/stream";
 import { GraphState } from "../interfaces.ts";
 import MessageEditor from "./MessageEditor.tsx";
 import { ChevronLeft, ChevronRight, Pencil, RefreshCw } from "lucide-react";
-import {useSelectedAttachments} from "../hooks/SelectedAttachmentsContext.tsx";
+import { useSelectedAttachments } from "../hooks/SelectedAttachmentsContext.tsx";
 
 const MessageContainer = styled.div<{
   type: "function" | "ai" | "human" | "tool" | "system" | "remove";
@@ -36,7 +36,7 @@ const MessageBubble = styled.div<{
   max-width: ${({ type }) => (type === "human" ? "80%" : "100%")};
   width: ${({ type }) => (type === "human" ? "auto" : "100%")};
   padding: ${({ type }) =>
-    type === "human" ? "1rem 1.5rem 0.5rem 1.5rem;" : "12px 16px 4px"};
+    type === "human" ? "1rem 1.5rem 0.5rem 1.5rem;" : "0"};
   border-radius: 25px;
   background-color: ${({ type }) =>
     type === "human" ? "#2d2d2d" : "transparent"};
@@ -70,8 +70,11 @@ const Buttons = styled.div`
   justify-content: end;
 `;
 
-const MessageButtons = styled(Buttons)`
+const MessageButtons = styled(Buttons)<{ showEdit: boolean; type: string }>`
   gap: 8px;
+  transition: opacity 0.2s ease;
+  opacity: ${({ showEdit }) => (showEdit ? 1 : 0)};
+  justify-content: ${({ type }) => (type === "ai" ? "start" : "end")};
 `;
 
 const MessageButton = styled.button<{ disabled: boolean }>`
@@ -175,7 +178,8 @@ const Message: React.FC<MessageProps> = ({
   const displayedRef = useRef<string>(""); // накапливаемый текст
   const [displayed, setDisplayed] = useState<string>("");
   const [edit, setEdit] = useState<boolean>(false);
-  const { setSelectedAttachments, clear} = useSelectedAttachments();
+  const [showEdit, setShowEdit] = useState<boolean>(false);
+  const { setSelectedAttachments, clear } = useSelectedAttachments();
 
   const idxRef = useRef<number>(0);
 
@@ -370,13 +374,17 @@ const Message: React.FC<MessageProps> = ({
   };
 
   return (
-    <div style={{ marginBottom: "20px", padding: "0 20px" }}>
+    <div
+      style={{ marginBottom: "20px", padding: "0 20px" }}
+      onMouseEnter={() => setShowEdit(true)}
+      onMouseLeave={() => setShowEdit(false)}
+    >
       {edit ? (
         <MessageEditor
           message={message}
           onCancel={() => {
-            setEdit(false)
-            clear()
+            setEdit(false);
+            clear();
           }}
           thread={thread}
         />
@@ -421,13 +429,22 @@ const Message: React.FC<MessageProps> = ({
               }
               {
                 //@ts-ignore
-                message.additional_kwargs && message.additional_kwargs.selected && Object.keys(message.additional_kwargs.selected).length > 0 ? (
-                  <SelectedCounter>Выбраны вложения: {
-                    //@ts-ignore
-                     Object.keys(message.additional_kwargs.selected).length
+                message.additional_kwargs &&
+                //@ts-ignore
+                message.additional_kwargs.selected &&
+                //@ts-ignore
+                Object.keys(message.additional_kwargs.selected).length > 0 ? (
+                  <SelectedCounter>
+                    Выбраны вложения:{" "}
+                    {
+                      //@ts-ignore
+                      Object.keys(message.additional_kwargs.selected).length
                     }
                   </SelectedCounter>
-              ) : <></>}
+                ) : (
+                  <></>
+                )
+              }
             </MessageBubble>
           </MessageContainer>
           {
@@ -442,24 +459,29 @@ const Message: React.FC<MessageProps> = ({
               <></>
             )
           }
-          <MessageButtons>
+          <MessageButtons showEdit={showEdit} type={message.type}>
             {message.type === "human" && (
               <MessageButton
                 disabled={!thread || thread.isLoading}
                 onClick={() => {
-                  setEdit(true)
-                  // @ts-ignore
-                  if (message.additional_kwargs && message.additional_kwargs.selected && Object.keys(message.additional_kwargs.selected).length > 0)
+                  setEdit(true);
+                  if (
+                    //@ts-ignore
+                    message.additional_kwargs &&
+                    //@ts-ignore
+                    message.additional_kwargs.selected &&
+                    //@ts-ignore
+                    Object.keys(message.additional_kwargs.selected).length > 0
+                  )
                     // @ts-ignore
-                    setSelectedAttachments(message.additional_kwargs.selected)
-                  else
-                    clear()
+                    setSelectedAttachments(message.additional_kwargs.selected);
+                  else clear();
                 }}
               >
                 <Pencil size={16} />
               </MessageButton>
             )}
-            {message.type === "human" && (
+            {message.type === "ai" && (
               <MessageButton
                 disabled={!thread || thread.isLoading}
                 onClick={onRefresh}
