@@ -235,6 +235,7 @@ async def tool_call(
                         attachment["file_id"],
                         attachment,
                         ttl=None,
+                        index=False,
                     )
                 elif attachment["type"] == "audio/mp3":
                     await store.aput(
@@ -242,6 +243,7 @@ async def tool_call(
                         attachment["file_id"],
                         attachment,
                         ttl=None,
+                        index=False,
                     )
                 else:
                     await store.aput(
@@ -249,6 +251,7 @@ async def tool_call(
                         attachment["file_id"],
                         attachment,
                         ttl=None,
+                        index=False,
                     )
 
                 tool_attachments.append(
