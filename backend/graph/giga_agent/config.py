@@ -1,33 +1,29 @@
 import os
 from operator import add
-from typing import TypedDict, Annotated, List
+from typing import Annotated, List, TypedDict
 
 from langchain_core.messages import AnyMessage
 from langgraph.graph import add_messages
 
-from giga_agent.repl_tools.llm import summarize
-from giga_agent.repl_tools.sentiment import predict_sentiments, get_embeddings
-from giga_agent.tools.another import (
-    search,
-    ask_about_image,
-    gen_image,
-)
-from giga_agent.tools.github import (
-    get_workflow_runs,
-    list_pull_requests,
-    get_pull_request,
-)
-from giga_agent.tools.repl import shell
-from giga_agent.tools.scraper import get_urls
-from giga_agent.tools.vk import vk_get_posts, vk_get_comments, vk_get_last_comments
-from giga_agent.tools.weather import weather
-
+from giga_agent.agents.gis_agent.graph import city_explore
 from giga_agent.agents.landing_agent.graph import create_landing
 from giga_agent.agents.lean_canvas import lean_canvas
 from giga_agent.agents.meme_agent.graph import create_meme
 from giga_agent.agents.podcast.graph import podcast_generate
 from giga_agent.agents.presentation_agent.graph import generate_presentation
-from giga_agent.agents.gis_agent.graph import city_explore
+from giga_agent.agents.researcher.graph import researcher_agent
+from giga_agent.repl_tools.llm import summarize
+from giga_agent.repl_tools.sentiment import get_embeddings, predict_sentiments
+from giga_agent.tools.another import ask_about_image, gen_image, search
+from giga_agent.tools.github import (
+    get_pull_request,
+    get_workflow_runs,
+    list_pull_requests,
+)
+from giga_agent.tools.repl import shell
+from giga_agent.tools.scraper import get_urls
+from giga_agent.tools.vk import vk_get_comments, vk_get_last_comments, vk_get_posts
+from giga_agent.tools.weather import weather
 from giga_agent.utils.env import load_project_env
 from giga_agent.utils.llm import load_llm
 
@@ -116,6 +112,7 @@ AGENTS = [
     podcast_generate,
     create_meme,
     city_explore,
+    researcher_agent,
 ]
 
 TOOLS = filter_tools_by_env(
