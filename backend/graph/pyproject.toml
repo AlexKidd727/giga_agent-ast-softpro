@@ -3,7 +3,7 @@ name = "giga_agent"
 version = "0.1.0"
 description = "Add your description here"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 dependencies = [
     "aiohttp>=3.12.15",
     "aiosqlite>=0.21.0",
@@ -36,6 +36,7 @@ dependencies = [
     "sqlalchemy>=2.0.42",
     "sqlmodel>=0.0.24",
     "typing-extensions>=4.14.1",
+    "deepagents==0.0.5",
 ]
 
 [build-system]
