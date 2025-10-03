@@ -16,6 +16,10 @@
     "app": "./giga_agent/tasks_app.py:app"
   },
   "dockerfile_lines": [
-    "RUN apt-get update && apt-get install -y ffmpeg libavcodec-extra"
+    "RUN apt-get update && apt-get install -y ffmpeg libavcodec-extra",
+    "RUN apt-get install -y curl",
+    "RUN curl -fsSL https://deb.nodesource.com/setup_lts.x | bash -",
+    "RUN apt-get install -y nodejs",
+    "RUN npm install -g npm@latest"
   ]
 }

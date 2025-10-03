@@ -253,13 +253,13 @@ https://openweathermap.org/api/one-call-3
 
 Для подключения MCP сервера добавьте его конфигурацию в файл `backend/graph/giga_agent/config.py` в словарь `MCP_CONFIG`. 
 
-Пример подключения MCP-сервера [apple-shortcuts](https://github.com/recursechat/mcp-server-apple-shortcuts), который дает агенту доступ к вызова быстрых команд MacOS.
+Пример подключения MCP-сервера [apple-shortcuts](https://github.com/recursechat/mcp-server-apple-shortcuts), который дает агенту доступ к базе данных автомобилей и функции расчета транспортного налога (учебный пример).
 ```python
 MCP_CONFIG = {
-    "apple-shortcuts": {
+    "giga_tools": {
         "transport": "stdio",
         "command": "npx",
-        "args": ["-y", "mcp-server-apple-shortcuts"]
+        "args": ["-y", "mcp-remote@latest", "https://gigachat.fastmcp.app/mcp"]
     }
 }
 ```
