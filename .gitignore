@@ -14,3 +14,4 @@ kernel_states
 __pycache__
 .github/
 front/package-lock.json
+data

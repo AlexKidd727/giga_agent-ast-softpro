@@ -339,6 +339,14 @@ const Message: React.FC<MessageProps> = ({
           const audioId = src.replace(/^audio:/, "");
           return <AudioPlayer id={audioId} alt={alt} />;
         }
+        if (src.startsWith("file:")) {
+          const filePath = src.replace(/^file:\/?/, "");
+          return (
+            <a href={`/files/${filePath}`} target={"_blank"}>
+              {alt}
+            </a>
+          );
+        }
         // Обычное изображение
         return (
           <img
