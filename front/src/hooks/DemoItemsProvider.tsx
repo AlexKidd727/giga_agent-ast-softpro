@@ -31,7 +31,7 @@ export const DemoItemsProvider = ({ children }: DemoItemsProps) => {
       setDemoItemsLoaded(true);
     });
     setDemoItems([]);
-    setDemoItemsLoaded(true);
+    setDemoItemsLoaded(false);
   };
 
   useEffect(() => {
