@@ -1,5 +1,6 @@
 # Пошаговая инструкция  для установки и настройки Giga Agent на виртуальной машине в Cloud.ru.
 
+Видео-версия инструкции по разворачиванию GigaAgent на cloud.ru [YouTube](https://youtu.be/tyeXgCJ090Y?si=WcbITF3DiTo_aBUF), [RuTube](https://rutube.ru/video/c9a416a654723f0b1df23424bd3d9b4d/).
 
 ### Шаг 0: Создание SSH-ключа (если у вас его нет)
 

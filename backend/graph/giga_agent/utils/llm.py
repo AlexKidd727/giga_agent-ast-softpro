@@ -34,6 +34,7 @@ def load_gigachat(tag: str = None, is_main: bool = False):
             scope=os.getenv("MAIN_GIGACHAT_SCOPE"),
             base_url=os.getenv("MAIN_GIGACHAT_BASE_URL"),
             top_p=os.getenv("MAIN_GIGACHAT_TOP_P", 0.5),
+            verbose=os.getenv("MAIN_GIGACHAT_VERBOSE", "False"),
         )
     return GigaChat(
         model=llm_str[len(GIGACHAT_PROVIDER) :],

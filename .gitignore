@@ -3,6 +3,7 @@
 front/node_modules
 .langgraph_api
 .idea
+.vscode
 .docker.env
 front/dist/**
 jupyter_fastapi/kernel_states

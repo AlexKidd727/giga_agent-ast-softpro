@@ -26,6 +26,7 @@ export const TOOL_MAP = {
   gen_image: "Генерация изображения",
   browser_task: "Агент Б.Раузер",
   get_documents: "Поиск по базе знаний",
+  researcher_agent: "Исследовательский агент",
 };
 
 export const PROGRESS_AGENTS = {
@@ -70,6 +71,11 @@ export const PROGRESS_AGENTS = {
     attractions_node: "Поиск отелей",
     hotels_node: "Поиск лучших ресторанов / кафе",
     food_node: "Поиск лучших ресторанов / кафе",
+  },
+  researcher_agent: {
+    __start__: "Начинает исследование",
+    research_agent: "Проводит глубокое исследование",
+    critique_agent: "Анализирует результаты",
   },
 };
 
