@@ -21,3 +21,13 @@ class UploadedFile(TypedDict):
     file_type: UploadedFileType
     image_id: Optional[str]
     image_path: Optional[str]
+
+
+class CollectionMetadata(TypedDict):
+    description: str
+
+
+class Collection(TypedDict):
+    name: str
+    uuid: str
+    metadata: CollectionMetadata

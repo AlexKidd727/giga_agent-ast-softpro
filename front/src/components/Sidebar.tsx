@@ -6,13 +6,15 @@ import {
   ChevronRight,
   Plus,
   Printer,
+  Files,
   Settings as SettingsIcon,
 } from "lucide-react";
-// @ts-ignore
 import LogoImage from "../assets/logo.png";
-// @ts-ignore
+import LogoWhiteImage from "../assets/logo-white.png";
 import QRImage from "../assets/qr.png";
 import { useSettings } from "./Settings.tsx";
+import { useDarkMode } from "@/hooks/use-dark-mode.tsx";
+import { ragEnabled } from "@/components/rag/utils.ts";
 
 const SIDEBAR_WIDTH = 250;
 
@@ -23,9 +25,8 @@ const Sidebar = styled.div<{ isOpen: boolean }>`
   width: ${SIDEBAR_WIDTH}px;
   height: 100%;
   padding: 20px;
-  background-color: #212121d9;
   backdrop-filter: blur(20px);
-  box-shadow: 0 0 ${(props) => (props.isOpen ? "50px" : `0`)} #00000075;
+  // box-shadow: 0 0 ${(props) => (props.isOpen ? "50px" : `0`)} #00000075;
   border-radius: 0 8px 8px 0;
   z-index: 100;
   transform: translateX(
@@ -103,10 +104,12 @@ const Opener = styled.button<{ isOpen: boolean }>`
   }
 `;
 
-const Logo = styled.div`
-  width: 156px;
+const Logo = styled.div<{ $isDark: boolean; $isOpen: boolean }>`
+  width: ${({ $isOpen }) => ($isOpen ? "156px" : "40px")};
   height: 40px;
-  background-image: url(${LogoImage});
+  transition: width 0.3s ease;
+  background-image: url("${({ $isDark }) =>
+    $isDark ? LogoImage : LogoWhiteImage}");
   background-size: cover;
 `;
 
@@ -123,7 +126,6 @@ const MenuItem = styled.div`
   align-items: center;
   padding: 8px;
   font-size: 14px;
-  color: #fff;
   border-radius: 8px;
   cursor: pointer;
   &:hover {
@@ -140,7 +142,6 @@ const CheckboxContainer = styled.label`
   padding: 8px;
   cursor: pointer;
   font-size: 14px;
-  color: #fff;
 `;
 
 const HiddenCheckbox = styled.input.attrs({ type: "checkbox" })`
@@ -178,6 +179,7 @@ interface SidebarProps {
 const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
   const navigate = useNavigate();
   const { settings, setSettings } = useSettings();
+  const isDarkMode = useDarkMode();
 
   const toggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -194,6 +196,11 @@ const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
     navigate("/demo/settings");
   };
 
+  const handleRag = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate("/rag");
+  };
+
   const handleAutoApproveChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setSettings({ ...settings, ...{ autoApprove: e.target.checked } });
   };
@@ -206,8 +213,15 @@ const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
   return (
     <>
       <Overlay isOpen={settings.sideBarOpen} onClick={toggle} />
-      <Sidebar isOpen={settings.sideBarOpen}>
-        <Logo style={{ opacity: 0, marginBottom: "0.5rem" }} />
+      <Sidebar
+        isOpen={settings.sideBarOpen}
+        className={"bg-card border text-card-foreground"}
+      >
+        <Logo
+          style={{ opacity: 0, marginBottom: "0.5rem" }}
+          $isDark={isDarkMode}
+          $isOpen={settings.sideBarOpen}
+        />
         <MenuItem onClick={handleNewChat}>
           <Plus size={24} />
           Новый чат
@@ -216,6 +230,12 @@ const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
           <Printer size={24} />
           Печать
         </MenuItem>
+        {ragEnabled() && (
+          <MenuItem onClick={handleRag}>
+            <Files size={24} />
+            База знаний
+          </MenuItem>
+        )}
         <MenuItem onClick={handleSettings}>
           <SettingsIcon size={24} />
           Настройки демо
@@ -234,11 +254,11 @@ const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
       </Sidebar>
 
       <Opener isOpen={settings.sideBarOpen} onClick={toggle}>
-        <Logo />
+        <Logo $isDark={isDarkMode} $isOpen={settings.sideBarOpen} />
         <ChevronRight
           style={{
             transform: settings.sideBarOpen ? "rotate(180deg)" : "rotate(0)",
-            marginLeft: "0.5rem",
+            marginLeft: "0.3rem",
           }}
         />
       </Opener>

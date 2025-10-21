@@ -16,10 +16,10 @@ import {
   ProgressOverlay,
   RemoveButton,
 } from "./Attachments.tsx";
-import { FileData, GraphState } from "../interfaces.ts";
-// @ts-ignore
-import { UseStream } from "@langchain/langgraph-sdk/dist/react/stream";
+import { FileData, GraphState, GraphTemplate } from "../interfaces.ts";
 import { BROWSER_USE_NAME } from "../config.ts";
+import { UseStream } from "@langchain/langgraph-sdk/react";
+import { useRagContext } from "@/components/rag/providers/RAG.tsx";
 
 const InputContainer = styled.div`
   padding: 16px;
@@ -137,11 +137,12 @@ const SendButton = styled(IconButton)`
 // Прочие стили для превью и оверлея оставляем без изменений...
 
 interface InputAreaProps {
-  thread?: UseStream<GraphState>;
+  thread?: UseStream<GraphState, GraphTemplate>;
 }
 
 const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
   const [message, setMessage] = useState("");
+  const { collections } = useRagContext();
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
@@ -165,10 +166,9 @@ const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
       } as HumanMessage;
       clear();
 
-      thread.submit(
-        { messages: [newMessage] },
+      thread?.submit(
+        { messages: [newMessage], collections: collections },
         {
-          //@ts-ignore
           optimisticValues(prev) {
             const prevMessages = prev.messages ?? [];
             const newMessages = [...prevMessages, newMessage];
@@ -179,13 +179,12 @@ const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
         },
       );
     },
-    [thread, selected, clear],
+    [thread, selected, clear, collections],
   );
   const handleContinueThread = useCallback(
     async (data: any) => {
-      thread.submit(undefined, {
+      thread?.submit(undefined, {
         command: { resume: data },
-        //@ts-ignore
         optimisticValues(prev) {
           if (!data.message) return {};
           const prevMessages = prev.messages ?? [];
@@ -199,6 +198,7 @@ const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
           return { ...prev, messages: newMessages };
         },
         onDisconnect:
+          // @ts-ignore
           thread?.messages.at(-1).tool_calls[0]?.name === BROWSER_USE_NAME
             ? "cancel"
             : "continue",
@@ -231,9 +231,8 @@ const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
 
   useEffect(() => {
     if (
-      thread.interrupt &&
-      thread.interrupt.value &&
-      // @ts-ignore
+      thread?.interrupt &&
+      thread?.interrupt.value &&
       thread.interrupt.value.type === "approve" &&
       settings.autoApprove
     ) {
@@ -252,8 +251,8 @@ const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      if (!thread.isLoading && !isUploading) {
-        if (thread.interrupt) {
+      if (!thread?.isLoading && !isUploading) {
+        if (thread?.interrupt) {
           handleContinue(message ? "comment" : "approve");
         } else {
           handleSend();
@@ -277,12 +276,12 @@ const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
           ref={fileInputRef}
           onChange={handleFileChange}
           multiple
-          disabled={thread.isLoading}
+          disabled={thread?.isLoading}
         />
         <IconButton
           type="button"
           onClick={() => fileInputRef.current?.click()}
-          disabled={thread.isLoading}
+          disabled={thread?.isLoading}
           title="Добавить вложения"
         >
           <Paperclip />
@@ -294,11 +293,10 @@ const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={thread.isLoading}
+          disabled={thread?.isLoading}
         />
-        {thread.interrupt &&
-        thread.interrupt.value &&
-        // @ts-ignore
+        {thread?.interrupt &&
+        thread?.interrupt.value &&
         thread.interrupt.value.type === "approve" &&
         !settings.autoApprove ? (
           <>
@@ -321,7 +319,7 @@ const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
           <SendButton
             type="button"
             onClick={handleSend}
-            disabled={thread.isLoading || !message.trim() || isUploading}
+            disabled={thread?.isLoading || !message.trim() || isUploading}
             title="Отправить"
           >
             <Send />

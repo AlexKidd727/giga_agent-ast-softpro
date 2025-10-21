@@ -9,8 +9,7 @@ import Message from "./Message.tsx";
 import ToolMessage, { ToolExecuting } from "./ToolMessage.tsx";
 import { Message as Message_ } from "@langchain/langgraph-sdk";
 import ThinkingIndicator from "./ThinkingIndicator.tsx";
-// @ts-ignore
-import { UseStream } from "@langchain/langgraph-sdk/dist/react/stream";
+import type { UseStream } from "@langchain/langgraph-sdk/react";
 import { GraphState } from "../interfaces.ts";
 import ChatError from "./ChatError.tsx";
 

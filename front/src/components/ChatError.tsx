@@ -2,8 +2,7 @@
 import { RefreshCw } from "lucide-react";
 import React from "react";
 import styled from "styled-components";
-// @ts-ignore
-import { UseStream } from "@langchain/langgraph-sdk/dist/react/stream";
+import type { UseStream } from "@langchain/langgraph-sdk/react";
 import { GraphState } from "@/interfaces.ts";
 
 // Стили для переливающегося текста
@@ -48,7 +47,9 @@ const ChatError = ({ thread }: ChatErrorProps) => {
         <RefreshButton
           onClick={() =>
             thread?.submit(
+              // @ts-ignore
               { messages: thread?.messages.at(-1) },
+              // @ts-ignore
               { checkpoint: thread?.history.at(-1).parent_checkpoint },
             )
           }

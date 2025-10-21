@@ -12,10 +12,9 @@ import {
   ProgressOverlay,
   RemoveButton,
 } from "./Attachments.tsx";
-import { HumanMessage, Message } from "@langchain/langgraph-sdk";
+import { Checkpoint, HumanMessage, Message } from "@langchain/langgraph-sdk";
 import OverlayPortal from "./OverlayPortal.tsx";
-// @ts-ignore
-import { UseStream } from "@langchain/langgraph-sdk/dist/react/stream";
+import type { UseStream } from "@langchain/langgraph-sdk/react";
 import { useSelectedAttachments } from "../hooks/SelectedAttachmentsContext.tsx";
 
 const InputContainer = styled.div`
@@ -193,19 +192,19 @@ const MessageEditor: React.FC<MessageEditorProps> = ({
       },
     } as HumanMessage;
 
-    const meta = thread.getMessagesMetadata(message);
-    const parentCheckpoint = meta.branch
-      ? {
+    const meta = thread?.getMessagesMetadata(message);
+    const parentCheckpoint = meta?.branch
+      ? ({
           ...meta?.firstSeenState?.parent_checkpoint,
           thread_id: meta.firstSeenState?.checkpoint.thread_id,
           checkpoint_id:
             meta.branch.split(">").length > 1
               ? meta.branch.split(">")[0]
               : meta.branch,
-        }
+        } as Checkpoint)
       : meta?.firstSeenState?.parent_checkpoint;
 
-    thread.submit(
+    thread?.submit(
       { messages: [newMessage] },
       {
         optimisticValues(prev: GraphState) {

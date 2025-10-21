@@ -7,15 +7,14 @@ import Spinner from "./Spinner.tsx";
 import { ChevronRight } from "lucide-react";
 import OverlayPortal from "./OverlayPortal.tsx";
 import { PROGRESS_AGENTS, TOOL_MAP } from "../config.ts";
-// @ts-ignore
-import { UseStream } from "@langchain/langgraph-sdk/dist/react/stream";
+import type { UseStream } from "@langchain/langgraph-sdk/react";
 import { GraphState } from "../interfaces.ts";
 import MessageAttachment from "./attachments/MessageAttachment.tsx";
 
 const ToolMessageContainer = styled.div`
   display: flex;
   align-items: flex-start;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
   padding: 12px 36px;
 `;
 
@@ -63,7 +62,6 @@ const CodeContainer = styled.div<{ expanded: boolean }>`
 `;
 
 const AttachmentsContainer = styled.div`
-  margin-top: 12px;
   display: flex;
   flex-direction: column;
   gap: 12px;
@@ -74,6 +72,7 @@ const AttachmentLink = styled.a`
   margin-left: 12px;
   color: white;
   font-size: 12px;
+  text-decoration: underline;
 `;
 
 const OverlayBox = styled.div`
@@ -143,7 +142,7 @@ export const ToolExecuting = ({ messages, thread }: ToolExecProps) => {
       // @ts-ignore
       const agent = PROGRESS_AGENTS[uis.at(-1).props.agent];
       if (agent) {
-        text = uis.at(-1).props.node;
+        text = agent[uis.at(-1).props.node];
       }
       if (text || image) {
         return {
@@ -154,7 +153,7 @@ export const ToolExecuting = ({ messages, thread }: ToolExecProps) => {
       return null;
     }
     return null;
-  }, [thread.values.ui]);
+  }, [thread?.values.ui]);
   // @ts-ignore
   const name = messages[messages.length - 1]?.tool_calls?.length
     ? // @ts-ignore

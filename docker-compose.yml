@@ -31,6 +31,8 @@ services:
                 condition: service_healthy
         image: giga_agent_aegra
         pull_policy: never
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
         env_file:
             - .docker.env
         environment:
@@ -91,6 +93,8 @@ services:
         restart: always
         image: giga_agent_aegra
         pull_policy: never
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
         command: uvicorn giga_agent.tool_server.tool_server:app --host 0.0.0.0 --port 9091
         env_file:
             - .docker.env
@@ -115,6 +119,11 @@ services:
         build:
             context: ./front
             dockerfile: Dockerfile
+            args:
+                VITE_LANGCONNECT_API_URL: ${LANGCONNECT_API_URL}
+                VITE_LANGCONNECT_API_SECRET_TOKEN: ${LANGCONNECT_API_SECRET_TOKEN}
+        env_file:
+            - .docker.env
         volumes:
             - ./files/:/files/:ro
             - ./data/jupyter:/home/jupyter/:ro

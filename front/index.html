@@ -7,9 +7,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <meta name="theme-color" content="#000000"/>
     <meta name="description" content="AI Assistant Chat Application"/>
-    <title>AI Assistant Chat</title>
-    <!--        <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r134/three.min.js"></script>-->
-    <!--    <script src="https://cdn.jsdelivr.net/npm/vanta@0.5.24/dist/vanta.fog.min.js"></script>-->
+    <title>GigaAgent</title>
     <style>
         .loader {
             width: 70px;
@@ -81,7 +79,7 @@
         }
 
         #root {
-            background-color: #121212;
+            background-color: var(--background);
             min-height: 100vh;
             min-height: -webkit-fill-available;
             display: flex;
@@ -115,28 +113,8 @@
         }
     </style>
 </head>
-<body>
-<div id="background" style="position: absolute; top: 0; bottom: 0; left: 0; right: 0; z-index: -1;"></div>
-<!--<div id="preloader">-->
-<!--    <span class="loader"></span>-->
-<!--</div>-->
+<body class="dark">
 <div id="root"></div>
 <script type="module" src="/src/index.tsx"></script>
-<script>
-    // VANTA.FOG({
-    //   el: "#background",
-    //   mouseControls: true,
-    //   touchControls: true,
-    //   gyroControls: false,
-    //   minHeight: 200.00,
-    //   minWidth: 200.00,
-    //   highlightColor: 0xf1402e,
-    //   midtoneColor: 0x9e086c,
-    //   baseColor: 0xfffffff,
-    //   blurFactor: 0.4,
-    //   speed: 0.2,
-    //   zoom: 0.2
-    // })
-</script>
 </body>
 </html>

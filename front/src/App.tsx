@@ -7,9 +7,10 @@ import Sidebar from "./components/Sidebar.tsx";
 import DemoSettings from "./components/demo/DemoSettings.tsx";
 import { DemoItemsProvider, useDemoItems } from "./hooks/DemoItemsProvider.tsx";
 import DemoChat from "./components/demo/DemoChat.tsx";
-// @ts-ignore
-import { UseStream } from "@langchain/langgraph-sdk/dist/react/stream";
+import type { UseStream } from "@langchain/langgraph-sdk/react";
 import { GraphState } from "./interfaces.ts";
+import { RagProvider } from "@/components/rag/providers/RAG.tsx";
+import RAGInterface from "@/components/rag";
 
 const AppContainer = styled.div`
   display: flex;
@@ -81,6 +82,7 @@ const InnerApp: React.FC = () => {
             />
           }
         />
+        <Route path="/rag" element={<RAGInterface />} />
         <Route path="/demo/settings" element={<DemoSettings />} />
       </Routes>
     </Sidebar>
@@ -91,11 +93,13 @@ const App: React.FC = () => {
   return (
     <DemoItemsProvider>
       <SettingsProvider>
-        <AppContainer>
-          <BrowserRouter>
-            <InnerApp />
-          </BrowserRouter>
-        </AppContainer>
+        <RagProvider>
+          <AppContainer>
+            <BrowserRouter>
+              <InnerApp />
+            </BrowserRouter>
+          </AppContainer>
+        </RagProvider>
       </SettingsProvider>
     </DemoItemsProvider>
   );

@@ -17,6 +17,7 @@ from giga_agent.tools.github import (
     list_pull_requests,
     get_pull_request,
 )
+from giga_agent.tools.rag import get_documents, has_collections
 from giga_agent.tools.repl import shell
 from giga_agent.tools.scraper import get_urls
 from giga_agent.tools.vk import vk_get_posts, vk_get_comments, vk_get_last_comments
@@ -30,6 +31,7 @@ from giga_agent.agents.presentation_agent.graph import generate_presentation
 from giga_agent.agents.gis_agent.graph import city_explore
 from giga_agent.utils.env import load_project_env
 from giga_agent.utils.llm import load_llm
+from giga_agent.utils.types import Collection
 
 BASEDIR = os.path.abspath(os.path.dirname(__file__))
 
@@ -41,6 +43,7 @@ class AgentState(TypedDict):  # noqa: D101
     kernel_id: str
     tool_call_index: int
     tools: list
+    collections: list[Collection]
 
 
 llm = load_llm()
@@ -70,6 +73,11 @@ TOOLS_REQUIRED_ENVS = {
     list_pull_requests.name: ["GITHUB_PERSONAL_ACCESS_TOKEN"],
     get_pull_request.name: ["GITHUB_PERSONAL_ACCESS_TOKEN"],
     browser_task.name: [],
+    get_documents.name: [
+        "LANGCONNECT_API_URL",
+        "LANGCONNECT_API_SECRET_TOKEN",
+        has_collections,
+    ],
 }
 
 
@@ -83,8 +91,12 @@ def has_required_envs(tool) -> bool:
     if required_env_names is None:
         return True
     for env_name in required_env_names:
-        if not os.getenv(env_name):
-            return False
+        if isinstance(env_name, str):
+            if not os.getenv(env_name):
+                return False
+        elif callable(env_name):
+            if not env_name():
+                return False
     return True
 
 
@@ -93,33 +105,39 @@ def filter_tools_by_env(tools: list) -> list:
     return [tool for tool in tools if has_required_envs(tool)]
 
 
-SERVICE_TOOLS = [
-    weather,
-    # VK TOOLS
-    vk_get_posts,
-    vk_get_comments,
-    vk_get_last_comments,
-    # GITHUB TOOLS
-    get_workflow_runs,
-    list_pull_requests,
-    get_pull_request,
-]
+SERVICE_TOOLS = filter_tools_by_env(
+    [
+        weather,
+        # VK TOOLS
+        vk_get_posts,
+        vk_get_comments,
+        vk_get_last_comments,
+        # GITHUB TOOLS
+        get_workflow_runs,
+        list_pull_requests,
+        get_pull_request,
+        # RAG TOOL
+        get_documents,
+    ]
+)
 
-AGENTS = [
-    ask_about_image,
-    gen_image,
-    get_urls,
-    search,
-    lean_canvas,
-    generate_presentation,
-    create_landing,
-    podcast_generate,
-    create_meme,
-    city_explore,
-    browser_task,
-]
+AGENTS = filter_tools_by_env(
+    [
+        ask_about_image,
+        gen_image,
+        get_urls,
+        search,
+        lean_canvas,
+        generate_presentation,
+        create_landing,
+        podcast_generate,
+        create_meme,
+        city_explore,
+        browser_task,
+    ]
+)
 
-TOOLS = filter_tools_by_env(
+TOOLS = (
     [
         # REPL
         python,
@@ -128,6 +146,7 @@ TOOLS = filter_tools_by_env(
     + AGENTS
     + SERVICE_TOOLS
 )
+
 
 REPL_TOOLS = [predict_sentiments, summarize, get_embeddings]
 

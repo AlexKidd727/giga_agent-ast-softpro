@@ -55,6 +55,8 @@ interface TextProps {
 
 const Text: React.FC<TextProps> = ({ id, data }) => {
   const [text, setText] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(false);
   const [expanded, setExpanded] = useState<boolean>(false);
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const COLLAPSED_MAX = 320;
@@ -67,9 +69,25 @@ const Text: React.FC<TextProps> = ({ id, data }) => {
       )
       .then((res) => {
         setText(res.data);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError(true);
       });
   }, [data.path]);
-  if (!text) return <Placeholder />;
+  if (loading) return <Placeholder />;
+  if (error)
+    return (
+      <div>
+        Ошибка загрузки вложения{" "}
+        <a
+          href={`${window.location.protocol}//${window.location.host}/files${data.path}`}
+          target={"_blank"}
+        >
+          {id}
+        </a>
+      </div>
+    );
   return (
     <InnerText>
       <InnerHeader
@@ -103,7 +121,15 @@ const Text: React.FC<TextProps> = ({ id, data }) => {
           });
         }}
       >
-        <h4 style={{ margin: 0 }}>Файл: {id}</h4>
+        <h4 style={{ margin: 0 }}>
+          Файл:{" "}
+          <a
+            href={`${window.location.protocol}//${window.location.host}/files${data.path}`}
+            target={"_blank"}
+          >
+            {id}
+          </a>
+        </h4>
         <Arrow size={18} $expanded={expanded} />
       </InnerHeader>
       <InnerBody ref={bodyRef} $maxHeightPx={maxHeight} $fade={showFade}>

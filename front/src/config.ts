@@ -25,6 +25,7 @@ export const TOOL_MAP = {
   city_explore: "Исследователь города",
   gen_image: "Генерация изображения",
   browser_task: "Агент Б.Раузер",
+  get_documents: "Поиск по базе знаний",
 };
 
 export const PROGRESS_AGENTS = {

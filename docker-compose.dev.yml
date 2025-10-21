@@ -3,6 +3,8 @@ services:
         volumes:
             - ./backend/graph/giga_agent:/app/giga_agent:rw
             - ./backend/graph/langgraph.json:/aegra.json:ro
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
         command: >
             sh -c "
               echo 'Running database migrations...' &&
@@ -20,6 +22,8 @@ services:
             - ./backend/repl/app:/app:rw
     tool_server:
         command: uv run uvicorn giga_agent.tool_server.tool_server:app --host 0.0.0.0 --port 9091 --reload --reload-dir /app/giga_agent
+        extra_hosts:
+            - "host.docker.internal:host-gateway"
         volumes:
             - ./backend/graph/giga_agent:/app/giga_agent:rw
     giga_agent_server:
@@ -41,8 +45,16 @@ services:
         build:
             context: ./front
             dockerfile: DockerfileDev
+        working_dir: /app
         command: npm run dev -- --host 0.0.0.0 --port 3000
+        ports:
+            -   "8081:3000"
+        env_file:
+            -   .docker.env
+        environment:
+            RUNNING_ENV: docker
         volumes:
             - ./front/public:/app/public:rw
             - ./front/src:/app/src:rw
             - ./front/index.html:/app/index.html:ro
+            - ./front/vite.config.ts:/app/vite.config.ts:ro

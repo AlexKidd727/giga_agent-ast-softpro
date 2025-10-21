@@ -32,15 +32,51 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
   const [attachment, setAttachment] = useState<any | null>(null);
   const [error, setError] = useState<boolean>(false);
 
+  const detectFileType = (
+    filePath: string,
+  ): "image" | "audio" | "html" | "text" | "other" => {
+    const lower = filePath.toLowerCase();
+    const dotIdx = lower.lastIndexOf(".");
+    const ext = dotIdx >= 0 ? lower.slice(dotIdx + 1) : "";
+    const imageExt = ["png", "jpg", "jpeg", "gif", "webp", "bmp", "svg"];
+    const audioExt = ["mp3", "wav", "ogg", "m4a", "aac", "flac"];
+    const htmlExt = ["html", "htm"];
+    const textExt = [
+      "txt",
+      "md",
+      "csv",
+      "json",
+      "xml",
+      "yaml",
+      "yml",
+      "toml",
+      "ini",
+      "cfg",
+      "conf",
+    ];
+    if (imageExt.includes(ext)) return "image";
+    if (audioExt.includes(ext)) return "audio";
+    if (htmlExt.includes(ext)) return "html";
+    if (textExt.includes(ext)) return "text";
+    return "other";
+  };
+
   useEffect(() => {
-    client
-      .getItem(["attachments"], path)
-      .then((res) => {
-        setAttachment(res?.value);
-      })
-      .catch(() => {
-        setError(true);
-      });
+    setError(false);
+    setAttachment(null);
+    if (path.startsWith("/home/jupyter")) {
+      const file_type = detectFileType(path);
+      setAttachment({ file_type, path: `${path}` });
+    } else {
+      client
+        .getItem(["attachments"], path)
+        .then((res) => {
+          setAttachment(res?.value);
+        })
+        .catch(() => {
+          setError(true);
+        });
+    }
   }, [path]);
 
   if (error) {
@@ -66,6 +102,8 @@ const MessageAttachment: React.FC<MessageAttachmentProps> = ({
     return <Image data={attachment} alt={alt} id={path} />;
   } else if (attachment["file_type"] === "audio") {
     return <Audio data={attachment} alt={alt} id={path} />;
+  } else {
+    return <div>Ошибка загрузки вложения {alt || ""}</div>;
   }
 };
 

@@ -1,7 +1,26 @@
 import { Message } from "@langchain/langgraph-sdk";
+import { Collection } from "@/types/collection.ts";
+
+import type { Interrupt } from "@langchain/langgraph-sdk";
 
 export interface GraphState extends Record<string, unknown> {
   messages: Message[];
+  collections: Collection[];
+}
+
+type BagTemplate = {
+  ConfigurableType?: Record<string, unknown>;
+  InterruptType?: unknown;
+  CustomEventType?: unknown;
+  UpdateType?: unknown;
+};
+
+export interface GraphInterrupt {
+  type: "approve" | "comment";
+}
+
+export interface GraphTemplate extends BagTemplate {
+  InterruptType: GraphInterrupt;
 }
 
 export interface FileData {

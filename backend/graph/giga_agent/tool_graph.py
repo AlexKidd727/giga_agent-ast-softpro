@@ -15,7 +15,6 @@ from langchain_core.messages import (
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.graph import StateGraph
 from langgraph.prebuilt.tool_node import _handle_tool_error, ToolNode
-from langgraph.store.base import BaseStore
 from langgraph.types import interrupt
 from langgraph.config import RunnableConfig
 
@@ -30,6 +29,7 @@ from giga_agent.prompts.few_shots import FEW_SHOTS_ORIGINAL, FEW_SHOTS_UPDATED
 from giga_agent.prompts.main_prompt import SYSTEM_PROMPT
 from giga_agent.repl_tools.utils import describe_repl_tool
 from giga_agent.tool_server.tool_client import ToolClient
+from giga_agent.tools.rag import get_rag_info
 from giga_agent.utils.env import load_project_env
 from giga_agent.utils.jupyter import JupyterClient, prepend_code
 from giga_agent.utils.lang import LANG
@@ -83,7 +83,7 @@ def get_code_arg(message):
 client = JupyterClient()
 
 
-async def agent(state: AgentState):
+async def agent(state: AgentState, config: RunnableConfig):
     tool_client = ToolClient()
     kernel_id = state.get("kernel_id")
     tools = state.get("tools")
@@ -121,7 +121,12 @@ async def agent(state: AgentState):
         state["messages"][
             -1
         ].content = f"<task>{user_input}</task> Активно планируй и следуй своему плану! Действуй по простым шагам!{generate_user_info(state)}\n{file_prompt}\n{selected_prompt}\nСледующий шаг: "
-    message = await ch.ainvoke({"messages": state["messages"]})
+    message = await ch.ainvoke(
+        {
+            "messages": state["messages"],
+            "rag_info": get_rag_info(state.get("collections", [])),
+        }
+    )
     message.additional_kwargs.pop("function_call", None)
     message.additional_kwargs["rendered"] = True
     return {
@@ -131,7 +136,7 @@ async def agent(state: AgentState):
     }
 
 
-async def tool_call(state: AgentState, store: BaseStore, config: RunnableConfig):
+async def tool_call(state: AgentState, config: RunnableConfig):
     tool_client = ToolClient()
     action = copy.deepcopy(state["messages"][-1].tool_calls[0])
     value = interrupt({"type": "approve"})

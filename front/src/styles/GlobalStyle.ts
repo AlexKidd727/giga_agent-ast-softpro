@@ -8,6 +8,8 @@ export const GlobalStyle = createGlobalStyle`
     }
     .markdown a {
         color: white;
+        text-decoration: underline;
+        cursor: pointer;
     }
     
     thinking {

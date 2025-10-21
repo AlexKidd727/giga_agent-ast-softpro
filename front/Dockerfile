@@ -3,8 +3,13 @@ FROM node:22.12.0-alpine AS builder
 WORKDIR /app
 
 # устанавливаем зависимости
-COPY package.json package-lock.json* ./
+COPY package.json ./
 RUN npm install
+
+ARG VITE_LANGCONNECT_API_URL
+ARG VITE_LANGCONNECT_API_SECRET_TOKEN
+ENV VITE_LANGCONNECT_API_URL=$VITE_LANGCONNECT_API_URL
+ENV VITE_LANGCONNECT_API_SECRET_TOKEN=$VITE_LANGCONNECT_API_SECRET_TOKEN
 
 # копируем исходники и билдим
 COPY . .

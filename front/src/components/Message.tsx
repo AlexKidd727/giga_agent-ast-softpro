@@ -1,13 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import styled from "styled-components";
-import { Message as Message_ } from "@langchain/langgraph-sdk";
+import { Checkpoint, Message as Message_ } from "@langchain/langgraph-sdk";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { vscDarkPlus } from "react-syntax-highlighter/dist/esm/styles/prism";
 import MessageAttachments from "./MessageAttachments.tsx";
 import { TOOL_MAP } from "../config.ts";
-// @ts-ignore
-import { UseStream } from "@langchain/langgraph-sdk/dist/react/stream";
-import { GraphState } from "../interfaces.ts";
+import type { UseStream } from "@langchain/langgraph-sdk/react";
+import { GraphState, GraphTemplate } from "../interfaces.ts";
 import MessageEditor from "./MessageEditor.tsx";
 import { ChevronLeft, ChevronRight, Pencil, RefreshCw } from "lucide-react";
 import { useSelectedAttachments } from "../hooks/SelectedAttachmentsContext.tsx";
@@ -74,7 +73,7 @@ function BranchSwitcher({
   thread,
   message,
 }: {
-  thread: UseStream<GraphState>;
+  thread?: UseStream<GraphState, GraphTemplate>;
   message: Message_;
 }) {
   if (!thread) return null;
@@ -126,7 +125,7 @@ interface MessageProps {
   onWrite: () => void;
   onWriteEnd?: () => void;
   writeMessage?: boolean;
-  thread?: UseStream<GraphState>;
+  thread?: UseStream<GraphState, GraphTemplate>;
 }
 
 const Message: React.FC<MessageProps> = ({
@@ -212,25 +211,25 @@ const Message: React.FC<MessageProps> = ({
   }, [normalizedContent, onWrite]);
 
   const onRefresh = () => {
-    const parentMessage = thread.messages.filter(
+    const parentMessage = thread?.messages.filter(
       (_: Message_, i: number) =>
         i + 1 < thread.messages.length &&
         thread.messages[i + 1].id === message.id,
     ); // Получаем сообщение которое идет до AI сообщения
     // TODO: Сейчас это нужно, чтобы giga_agent адекватно работал с aegra, так как в их API нельзя просто передавать checkpoint (без input)
-    const meta = thread.getMessagesMetadata(message);
-    const parentCheckpoint = meta.branch
-      ? {
+    const meta = thread?.getMessagesMetadata(message);
+    const parentCheckpoint = meta?.branch
+      ? ({
           ...meta?.firstSeenState?.parent_checkpoint,
           thread_id: meta.firstSeenState?.checkpoint.thread_id,
           checkpoint_id:
             meta.branch.split(">").length > 1
               ? meta.branch.split(">")[0]
               : meta.branch,
-        }
+        } as Checkpoint)
       : meta?.firstSeenState?.parent_checkpoint;
 
-    thread.submit(
+    thread?.submit(
       { messages: parentMessage },
       { checkpoint: parentCheckpoint },
     );

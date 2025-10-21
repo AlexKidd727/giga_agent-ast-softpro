@@ -3,11 +3,14 @@ import react from "@vitejs/plugin-react";
 import compression from "vite-plugin-compression";
 import path from "path";
 import { fileURLToPath } from "url";
+import tailwindcss from "@tailwindcss/vite";
 
 export default defineConfig(({ mode }) => {
+  console.log(process.env);
   const __filename = fileURLToPath(import.meta.url);
   const __dirname = path.dirname(__filename);
   const env = loadEnv(mode, path.resolve(__dirname, ".."), "");
+  const runningEnv = env.RUNNING_ENV || process.env.RUNNING_ENV || "local";
 
   const JUPYTER_UPLOAD_API =
     env.JUPYTER_UPLOAD_API ||
@@ -23,8 +26,20 @@ export default defineConfig(({ mode }) => {
     process.env.GIGA_AGENT_API ||
     "http://127.0.0.1:8822/";
 
+  if (!process.env.VITE_LANGCONNECT_API_URL) {
+    process.env.VITE_LANGCONNECT_API_URL =
+      env.LANGCONNECT_API_URL || process.env.LANGCONNECT_API_URL || "";
+  }
+  if (!process.env.VITE_LANGCONNECT_API_SECRET_TOKEN) {
+    process.env.VITE_LANGCONNECT_API_SECRET_TOKEN =
+      env.LANGCONNECT_API_SECRET_TOKEN ||
+      process.env.LANGCONNECT_API_SECRET_TOKEN ||
+      "";
+  }
+
   return {
     plugins: [
+      tailwindcss(),
       react(),
       compression({
         algorithm: "gzip",
@@ -35,26 +50,35 @@ export default defineConfig(({ mode }) => {
         deleteOriginFile: false,
       }),
     ],
-    server: {
-      proxy: {
-        "/files": {
-          target: JUPYTER_UPLOAD_API,
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/files/, ""),
-        },
-        "/graph": {
-          target: LANGGRAPH_API_URL,
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/graph/, ""),
-        },
-        "/api": {
-          target: GIGA_AGENT_API,
-          changeOrigin: true,
-          rewrite: (path) => path.replace(/^\/api/, ""),
-        },
+    resolve: {
+      alias: {
+        "@": path.resolve(__dirname, "./src"),
       },
-      port: 3000,
     },
+
+    server:
+      runningEnv === "docker"
+        ? {
+            proxy: {
+              "/files": {
+                target: JUPYTER_UPLOAD_API,
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/files/, ""),
+              },
+              "/graph": {
+                target: LANGGRAPH_API_URL,
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/graph/, ""),
+              },
+              "/api": {
+                target: GIGA_AGENT_API,
+                changeOrigin: true,
+                rewrite: (path) => path.replace(/^\/api/, ""),
+              },
+            },
+            port: 3000,
+          }
+        : {},
     build: {
       outDir: "dist",
       sourcemap: false,

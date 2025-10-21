@@ -2,8 +2,7 @@
 import React from "react";
 import styled, { keyframes } from "styled-components";
 import { Message as Message_ } from "@langchain/langgraph-sdk";
-// @ts-ignore
-import { UseStream } from "@langchain/langgraph-sdk/dist/react/stream";
+import type { UseStream } from "@langchain/langgraph-sdk/react";
 import { GraphState } from "../interfaces.ts";
 
 // Анимация перемещения фона слева направо
@@ -21,6 +20,8 @@ const fadeIn = keyframes`
 // Стили для переливающегося текста
 const Thinking = styled.div`
   color: transparent;
+  // вертикальная светлая линия
+  background-size: 50% 100%;
   background: linear-gradient(
     90deg,
     rgba(255, 255, 255, 0.3) 0%,
