@@ -85,7 +85,7 @@ def get_code_arg(message):
 client = JupyterClient()
 
 
-async def before_agent(state: AgentState, config: RunnableConfig):
+async def before_agent(state: AgentState):
     tool_client = ToolClient()
     kernel_id = state.get("kernel_id")
     tools = state.get("tools")
@@ -122,22 +122,22 @@ async def before_agent(state: AgentState, config: RunnableConfig):
         state["messages"][
             -1
         ].content = f"<task>{user_input}</task> Активно планируй и следуй своему плану! Действуй по простым шагам!{generate_user_info(state)}\n{file_prompt}\n{selected_prompt}\nСледующий шаг: "
-    return {
-        "messages": [state["messages"][-1]],
-        "kernel_id": kernel_id,
-        "tools": tools,
-    }
-
-
-async def agent(state: AgentState):
     filtered_tools = []
-    for tool in state["tools"]:
+    for tool in tools:
         if tool["name"] in TOOLS_AGENT_CHECKS:
             if not await run_checks(tool_name=tool["name"], state=state):
                 continue
         filtered_tools.append(tool)
+    return {
+        "messages": [state["messages"][-1]],
+        "kernel_id": kernel_id,
+        "tools": filtered_tools,
+    }
+
+
+async def agent(state: AgentState):
     ch = (
-        prompt | llm.bind_tools(filtered_tools, parallel_tool_calls=False)
+        prompt | llm.bind_tools(state["tools"], parallel_tool_calls=False)
     ).with_retry()
     message = await ch.ainvoke(
         {

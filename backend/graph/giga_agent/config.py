@@ -86,6 +86,7 @@ async def run_checks(tool_name: str, state: AgentState):
             return False
         if asyncio.iscoroutinefunction(check) and not await check(state):
             return False
+    return True
 
 
 def has_required_envs(tool) -> bool:
@@ -114,6 +115,7 @@ def filter_tools_by_env(tools: list) -> list:
 
 SERVICE_TOOLS = filter_tools_by_env(
     [
+        get_documents,
         weather,
         # VK TOOLS
         vk_get_posts,
@@ -123,8 +125,6 @@ SERVICE_TOOLS = filter_tools_by_env(
         get_workflow_runs,
         list_pull_requests,
         get_pull_request,
-        # RAG TOOL
-        get_documents,
     ]
 )
 
