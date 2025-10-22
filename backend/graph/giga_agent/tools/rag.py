@@ -52,7 +52,7 @@ async def get_documents(
 
 
 def has_collections(state):
-    return len(state["collections"]) > 0
+    return len(state.get("collections", [])) > 0
 
 
 RAG_PROMPT = """
