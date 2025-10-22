@@ -165,7 +165,6 @@ const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
         },
       } as HumanMessage;
       clear();
-      console.log(collections);
       thread?.submit(
         { messages: [newMessage], collections: collections },
         {
