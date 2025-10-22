@@ -5,19 +5,19 @@ init_files:
 	cp -R backend/repl/files ./files/
 
 up:
-	docker compose up -d
+	docker compose --env-file .docker.env up -d
 
 down:
-	docker compose down
+	docker compose --env-file .docker.env down
 
 build:
 	docker compose --env-file .docker.env build
 
 up_dev:
-	docker compose -p giga_agent_dev -f docker-compose.yml -f docker-compose.dev.yml up -d
+	docker compose -p giga_agent_dev -f docker-compose.yml -f docker-compose.dev.yml --env-file .docker.env up -d
 
 down_dev:
-	docker compose -p giga_agent_dev -f docker-compose.yml -f docker-compose.dev.yml down
+	docker compose -p giga_agent_dev -f docker-compose.yml -f docker-compose.dev.yml --env-file .docker.env down
 
 build_dev:
 	docker compose -p giga_agent_dev -f docker-compose.yml -f docker-compose.dev.yml --env-file .docker.env build
