@@ -77,7 +77,13 @@ export function DocumentsCard({
   const handleFiles = (files: File[] | null) => {
     if (!files?.length) return;
 
-    const allowedTypes = ["application/pdf", "text/plain", "text/html"];
+    const allowedTypes = [
+      "application/pdf",
+      "text/plain",
+      "text/html",
+      "application/msword",
+      "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    ];
     const filteredFiles = files.filter((file) =>
       allowedTypes.includes(file.type),
     );
@@ -224,7 +230,7 @@ export function DocumentsCard({
                   id="file-upload"
                   multiple
                   onChange={handleFileSelect}
-                  accept=".pdf,.txt,.html"
+                  accept=".pdf,.txt,.html,.doc,.docx"
                 />
                 <Label htmlFor="file-upload">
                   <Button variant="outline" className="mt-2" asChild>
