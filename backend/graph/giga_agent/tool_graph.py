@@ -83,7 +83,7 @@ def get_code_arg(message):
 client = JupyterClient()
 
 
-async def agent(state: AgentState, config: RunnableConfig):
+async def before_agent(state: AgentState, config: RunnableConfig):
     tool_client = ToolClient()
     kernel_id = state.get("kernel_id")
     tools = state.get("tools")
@@ -92,7 +92,6 @@ async def agent(state: AgentState, config: RunnableConfig):
         await client.execute(kernel_id, "function_results = []")
     if not tools:
         tools = await tool_client.get_tools()
-    ch = (prompt | llm.bind_tools(tools, parallel_tool_calls=False)).with_retry()
     if state["messages"][-1].type == "human":
         user_input = state["messages"][-1].content
         files = state["messages"][-1].additional_kwargs.get("files", [])
@@ -121,6 +120,17 @@ async def agent(state: AgentState, config: RunnableConfig):
         state["messages"][
             -1
         ].content = f"<task>{user_input}</task> Активно планируй и следуй своему плану! Действуй по простым шагам!{generate_user_info(state)}\n{file_prompt}\n{selected_prompt}\nСледующий шаг: "
+    return {
+        "messages": [state["messages"][-1]],
+        "kernel_id": kernel_id,
+        "tools": tools,
+    }
+
+
+async def agent(state: AgentState):
+    ch = (
+        prompt | llm.bind_tools(state["tools"], parallel_tool_calls=False)
+    ).with_retry()
     message = await ch.ainvoke(
         {
             "messages": state["messages"],
@@ -129,11 +139,7 @@ async def agent(state: AgentState, config: RunnableConfig):
     )
     message.additional_kwargs.pop("function_call", None)
     message.additional_kwargs["rendered"] = True
-    return {
-        "messages": [state["messages"][-1], message],
-        "kernel_id": kernel_id,
-        "tools": tools,
-    }
+    return {"messages": [message]}
 
 
 async def tool_call(state: AgentState, config: RunnableConfig):
@@ -250,9 +256,11 @@ def router(state: AgentState) -> Literal["tool_call", "__end__"]:
 
 
 workflow = StateGraph(AgentState)
+workflow.add_node(before_agent)
 workflow.add_node(agent)
 workflow.add_node(tool_call)
-workflow.add_edge("__start__", "agent")
+workflow.add_edge("__start__", "before_agent")
+workflow.add_edge("before_agent", "agent")
 workflow.add_conditional_edges("agent", router)
 workflow.add_edge("tool_call", "agent")
 

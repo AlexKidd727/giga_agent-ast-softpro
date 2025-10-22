@@ -2,6 +2,8 @@ import asyncio
 import json
 import uuid
 
+import os
+import re
 from langchain_core.messages import HumanMessage, ToolMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langchain_core.runnables import (
@@ -102,9 +104,19 @@ async def coder_node(state: LandingState, config: RunnableConfig):
             f'/files/runs/{config["configurable"]["thread_id"]}/{image["name"]}',
         )
     uploader = REPLUploader()
+    html_counter = ""
+    if state.get("html"):
+        prev_path = state["html"].get("path")
+        if prev_path:
+            filename = os.path.basename(prev_path)
+            match = re.match(r"^(?P<name>.+?)(?:_(?P<idx>\d+))?\.html$", filename)
+            if match:
+                idx = match.group("idx")
+                next_idx = int(idx) + 1 if idx else 2
+                html_counter = f"_{next_idx}"
     upload_files = [
         RunUploadFile(
-            path=f"page.html",
+            path=f"page{html_counter}.html",
             file_type="html",
             content=html,
         )

@@ -193,16 +193,7 @@ const MessageEditor: React.FC<MessageEditorProps> = ({
     } as HumanMessage;
 
     const meta = thread?.getMessagesMetadata(message);
-    const parentCheckpoint = meta?.branch
-      ? ({
-          ...meta?.firstSeenState?.parent_checkpoint,
-          thread_id: meta.firstSeenState?.checkpoint.thread_id,
-          checkpoint_id:
-            meta.branch.split(">").length > 1
-              ? meta.branch.split(">")[0]
-              : meta.branch,
-        } as Checkpoint)
-      : meta?.firstSeenState?.parent_checkpoint;
+    const parentCheckpoint = meta?.firstSeenState?.parent_checkpoint;
 
     thread?.submit(
       { messages: [newMessage] },
