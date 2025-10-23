@@ -135,6 +135,20 @@ async def before_agent(state: AgentState):
     }
 
 
+NOTES_PROMPT = """
+===
+
+ЗАМЕТКИ ПОЛЬЗОВАТЕЛЯ
+{0} 
+"""
+
+
+def get_user_notes():
+    if os.getenv("GIGA_AGENT_USER_NOTES"):
+        return NOTES_PROMPT.format(os.getenv("GIGA_AGENT_USER_NOTES"))
+    return ""
+
+
 async def agent(state: AgentState):
     ch = (
         prompt | llm.bind_tools(state["tools"], parallel_tool_calls=False)
@@ -143,6 +157,7 @@ async def agent(state: AgentState):
         {
             "messages": state["messages"],
             "rag_info": get_rag_info(state.get("collections", [])),
+            "user_notes": get_user_notes(),
         }
     )
     message.additional_kwargs.pop("function_call", None)

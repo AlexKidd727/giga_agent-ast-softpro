@@ -45,13 +45,9 @@ const ChatError = ({ thread }: ChatErrorProps) => {
       <Inner>
         В чате произошла ошибка{" "}
         <RefreshButton
-          onClick={() =>
-            thread?.submit(
-              // @ts-ignore
-              { messages: thread?.messages.at(-1) },
-              // @ts-ignore
-              { checkpoint: thread?.history.at(-1).checkpoint },
-            )
+          onClick={
+            // @ts-ignore
+            () => thread?.submit()
           }
         >
           <RefreshCw color={"white"} size={16} />

@@ -10,6 +10,7 @@ from langgraph.prebuilt.tool_node import _handle_tool_error, ToolNode
 from pydantic_core import ValidationError
 from fastapi.responses import JSONResponse
 
+from giga_agent.tool_server.utils import transform_schema, transform_tool
 from giga_agent.utils.env import load_project_env
 from giga_agent.config import MCP_CONFIG, TOOLS, REPL_TOOLS, AGENT_MAP
 
@@ -23,7 +24,13 @@ load_project_env()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     client = MultiServerMCPClient(MCP_CONFIG)
-    tools = TOOLS + await client.get_tools()
+    # mcp_tools = [transform_tool(tool) for tool in await client.get_tools()]
+    mcp_tools = await client.get_tools()
+    for mcp_tool in mcp_tools:
+        mcp_tool.name = mcp_tool.name.replace("-", "_")
+        if isinstance(mcp_tool.args_schema, dict):
+            mcp_tool.args_schema = transform_schema(mcp_tool.args_schema)
+    tools = TOOLS + mcp_tools
     config["tool_node"] = ToolNode(tools=tools)
     for tool in tools:
         tool_map[tool.name] = tool

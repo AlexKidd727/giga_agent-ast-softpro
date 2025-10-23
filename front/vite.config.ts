@@ -56,7 +56,7 @@ export default defineConfig(({ mode }) => {
     },
 
     server:
-      runningEnv === "docker"
+      runningEnv === "local"
         ? {
             proxy: {
               "/files": {

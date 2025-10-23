@@ -91,6 +91,9 @@ async def image_node(state: LandingState, config: RunnableConfig):
         for i in filtered_images
     ]
     images_data = await asyncio.gather(*tasks, return_exceptions=True)
+    images_data_filtered = [
+        (i, d) for i, d in zip(filtered_images, images_data) if isinstance(d, str)
+    ]
 
     uploader = REPLUploader()
     upload_files = [
@@ -99,7 +102,7 @@ async def image_node(state: LandingState, config: RunnableConfig):
             file_type="image",
             content=base64.b64decode(image),
         )
-        for i, image in zip(filtered_images, images_data)
+        for i, image in images_data_filtered
     ]
     upload_resp = await uploader.upload_run_files(
         upload_files, config["configurable"]["thread_id"]
@@ -107,11 +110,11 @@ async def image_node(state: LandingState, config: RunnableConfig):
 
     images_uploaded = state.get("images_uploaded", {})
     new_images = []
-    for i, b in zip(filtered_images, upload_resp):
+    for i, b in zip(images_data_filtered, upload_resp):
         if isinstance(b, Exception):
             continue
-        images_uploaded[i["name"]] = b
-        new_images.append(i)
+        images_uploaded[i[0]["name"]] = b
+        new_images.append(i[0])
     action = state["agent_messages"][-1].tool_calls[0]
     return {
         "image_messages": full_messages[:-1],

@@ -1,4 +1,5 @@
 import asyncio
+import json
 import os
 from typing import TypedDict, Annotated
 
@@ -51,7 +52,7 @@ else:
     from giga_agent.tools.repl.args_tool import python
 
 
-MCP_CONFIG = {}
+MCP_CONFIG = json.loads(os.getenv("GIGA_AGENT_MCP_CONFIG", "{}").strip())
 
 TOOLS_REQUIRED_ENVS = {
     gen_image.name: ["IMAGE_GEN_NAME"],
