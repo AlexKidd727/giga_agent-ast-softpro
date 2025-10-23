@@ -38,6 +38,7 @@ RUN mkdir -p /mnt/
 
 RUN useradd -ms /bin/bash jupyter \
     && chgrp -R jupyter /mnt/ \
+    && chgrp -R jupyter /home/jupyter/ \
     && chmod -R 777 /mnt/ \
     && chmod -R 777 /home/jupyter/
 

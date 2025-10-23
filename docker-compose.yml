@@ -64,8 +64,8 @@ services:
         volumes:
             - ./kernel_states/:/kernel_states/
             - ./files/:/files/:ro
-            - ./data/jupyter/:/home/jupyter/:rw
-            - ./data/runs/:/runs/:rw
+            - ./data/jupyter/:/home/jupyter/
+            - ./data/runs/:/runs/
     upload_server:
         working_dir: /
         restart: always
