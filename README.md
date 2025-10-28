@@ -12,7 +12,7 @@
 [中文](https://www.zdoc.app/zh/ai-forever/giga_agent) | 
 [English](https://www.zdoc.app/en/ai-forever/giga_agent) | 
 [Español](https://www.zdoc.app/es/ai-forever/giga_agent) ]
-<b>GigaAgent может решать самые разные задачи используя более 30 встроенных инструментов и субагентов.</b>
+<b>GigaAgent может решать самые разные задачи, используя более 30 встроенных инструментов и субагентов.</b>
 
 <hr>
 
