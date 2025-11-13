@@ -1,14 +1,14 @@
 import os
 
-from langchain_core.tools import tool
 from langchain_core.output_parsers import StrOutputParser
-from langchain.prompts import ChatPromptTemplate
-from langgraph.types import interrupt
+from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.runnables.config import RunnableConfig
+from langchain_core.tools import tool
 from langgraph.graph import END, START, StateGraph
 from langgraph.graph.ui import push_ui_message
+from langgraph.types import interrupt
 from langgraph_sdk import get_client
-from typing_extensions import TypedDict, Annotated
+from typing_extensions import Annotated, TypedDict
 
 from giga_agent.utils.lang import LANG
 from giga_agent.utils.llm import load_llm
@@ -153,11 +153,11 @@ async def unfair_advantage(state: LeanGraphState, config: RunnableConfig):
     }
 
 
-from typing_extensions import Literal
-from langgraph.types import Command
-from pydantic import BaseModel, Field
 from langchain_core.output_parsers import PydanticOutputParser
 from langchain_tavily import TavilySearch
+from langgraph.types import Command
+from pydantic import BaseModel, Field
+from typing_extensions import Literal
 
 
 class CompetitorsAnalysisResult(BaseModel):

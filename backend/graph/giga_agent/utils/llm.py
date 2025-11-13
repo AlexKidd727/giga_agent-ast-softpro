@@ -1,8 +1,9 @@
 import os
 from typing import Dict, Optional
-from langchain_gigachat import GigaChat, GigaChatEmbeddings
+
 from langchain.chat_models import init_chat_model
 from langchain.embeddings import init_embeddings
+from langchain_gigachat import GigaChat, GigaChatEmbeddings
 
 from giga_agent.utils.env import load_project_env
 
