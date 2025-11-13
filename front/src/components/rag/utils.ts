@@ -5,8 +5,8 @@ export const session: any = {
 export const LANGCONNECT_API_URL: string | undefined = import.meta.env
   ?.VITE_LANGCONNECT_API_URL;
 
-export const PROXY_MCP_API_URL: string | undefined = import.meta.env
-  ?.VITE_MCP_API_URL;
+export const MCP_PROXY_URL: string | undefined = import.meta.env
+  ?.VITE_MCP_PROXY_URL;
 
 export const ragEnabled = () => {
   return !!session.accessToken && !!LANGCONNECT_API_URL;

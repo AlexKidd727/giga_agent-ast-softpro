@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Info, Settings, Plus, Trash2, Power, PowerOff, X } from "lucide-react";
+import { Info, Plus, Trash2, Power, PowerOff, X } from "lucide-react";
 import { type Tool } from "mcp-use/react";
 import {
   Dialog,
@@ -25,7 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { detectGigaChatWrongSchema } from "@/components/mcp/utils/detectGigaChatWrongSchema";
-import { PROXY_MCP_API_URL } from "@/components/rag/utils.ts";
+import { MCP_PROXY_URL } from "@/components/rag/utils.ts";
 
 interface McpServer {
   id: string;
@@ -80,7 +80,7 @@ function McpConnection({
       if (isLocal) return rawUrl;
       // Remote host → используем локальный прокси
       const proxyUrl =
-        PROXY_MCP_API_URL ??
+        MCP_PROXY_URL ??
         `${window.location.protocol}//${window.location.host}/proxy/`;
       return `${proxyUrl}${rawUrl}`;
     } catch {
