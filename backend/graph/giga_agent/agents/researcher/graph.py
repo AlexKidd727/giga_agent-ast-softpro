@@ -13,7 +13,7 @@ from giga_agent.utils.jupyter import RunUploadFile, REPLUploader
 from giga_agent.utils.llm import load_llm
 from giga_agent.utils.messages import filter_tool_calls
 
-llm = load_llm().bind(timeout=30).with_retry().with_config(tags=["nostream"])
+llm = load_llm().bind(timeout=30).with_config(tags=["nostream"])
 
 
 async def internet_search(
