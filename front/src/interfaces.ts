@@ -1,13 +1,20 @@
 import { Message } from "@langchain/langgraph-sdk";
 import { Collection } from "@/types/collection.ts";
 
-import type { Interrupt } from "@langchain/langgraph-sdk";
 import { Tool } from "mcp-use/react";
+
+export type Secret = {
+  name: string;
+  value: string;
+  description?: string;
+};
 
 export interface GraphState extends Record<string, unknown> {
   messages: Message[];
   collections: Collection[];
   mcp_tools: Tool[];
+  instructions: string;
+  secrets: Secret[];
 }
 
 type BagTemplate = {
@@ -18,7 +25,9 @@ type BagTemplate = {
 };
 
 export interface GraphInterrupt {
-  type: "approve" | "comment";
+  type: "approve" | "comment" | "tool_call";
+  tool_name?: string;
+  args?: any;
 }
 
 export interface GraphTemplate extends BagTemplate {

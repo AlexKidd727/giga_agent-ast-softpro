@@ -118,6 +118,7 @@ services:
             args:
                 VITE_LANGCONNECT_API_URL: ${LANGCONNECT_API_URL}
                 VITE_LANGCONNECT_API_SECRET_TOKEN: ${LANGCONNECT_API_SECRET_TOKEN}
+                VITE_MCP_PROXY_URL: ${MCP_PROXY_URL}
         env_file:
             - .docker.env
         volumes:

@@ -25,6 +25,7 @@ import {
   TooltipTrigger,
 } from "@/components/ui/tooltip";
 import { detectGigaChatWrongSchema } from "@/components/mcp/utils/detectGigaChatWrongSchema";
+import { PROXY_MCP_API_URL } from "@/components/rag/utils.ts";
 
 interface McpServer {
   id: string;
@@ -78,7 +79,10 @@ function McpConnection({
       const isLocal = isLocalHostname || isPrivateLan;
       if (isLocal) return rawUrl;
       // Remote host → используем локальный прокси
-      return `${window.location.protocol}//${window.location.host}/api/mcp/@${rawUrl}`;
+      const proxyUrl =
+        PROXY_MCP_API_URL ??
+        `${window.location.protocol}//${window.location.host}/proxy/`;
+      return `${proxyUrl}${rawUrl}`;
     } catch {
       // Если URL некорректный — возвращаем как есть
       return rawUrl;
@@ -95,10 +99,6 @@ function McpConnection({
     callbackUrl: window.location.origin + "/oauth/callback",
     clientName: "GigaAgent",
     autoReconnect: 3000,
-    onPopupWindow: (popup) => {
-      // Track popup for UX
-      console.log("OAuth popup opened:", popup);
-    },
     customHeaders: server.authToken
       ? { Authorization: `Bearer ${server.authToken}` }
       : undefined,
@@ -126,10 +126,16 @@ const MCPConnectionMemo = React.memo(
   (prev, next) => prev.server.url === next.server.url,
 );
 
+type ToolWithEnabled = Tool & { enabled: boolean; disabled?: boolean };
+
+export type MCPTool = Tool & {
+  callTool: (args: Record<string, unknown>) => Promise<any>;
+};
+
 interface McpServerModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onToolsUpdate?: (tools: Tool[]) => void;
+  onToolsUpdate?: (tools: MCPTool[]) => void;
 }
 
 const McpServerModal: React.FC<McpServerModalProps> = ({
@@ -137,8 +143,6 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
   onClose,
   onToolsUpdate,
 }) => {
-  type ToolWithEnabled = Tool & { enabled: boolean; disabled?: boolean };
-
   // Локальное состояние тулов по серверу с флагом enabled
   const [serverTools, setServerTools] = useState<
     Record<string, ToolWithEnabled[]>
@@ -250,7 +254,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
 
   // Aggregate all tools from enabled servers and notify parent
   useEffect(() => {
-    const allTools: Tool[] = [];
+    const allTools: MCPTool[] = [];
 
     servers.forEach((server) => {
       if (!server.enabled || connectionData[server.id]?.state !== "ready")
@@ -426,22 +430,22 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
   const getStatusBadge = (state: string) => {
     switch (state) {
       case "discovering":
-        return <Badge variant="secondary">Discovering</Badge>;
+        return <Badge variant="secondary">Подключение</Badge>;
       case "pending_auth":
-        return <Badge variant="outline">Authentication Required</Badge>;
+        return <Badge variant="outline">Требуется аутентификация</Badge>;
       case "authenticating":
-        return <Badge variant="secondary">Authenticating</Badge>;
+        return <Badge variant="secondary">Аутентификация</Badge>;
       case "connecting":
-        return <Badge variant="secondary">Connecting</Badge>;
+        return <Badge variant="secondary">Подключение</Badge>;
       case "loading":
-        return <Badge variant="secondary">Loading</Badge>;
+        return <Badge variant="secondary">Загрузка</Badge>;
       case "ready":
-        return <Badge>Connected</Badge>;
+        return <Badge>Подключено</Badge>;
       case "failed":
-        return <Badge variant="destructive">Failed</Badge>;
+        return <Badge variant="destructive">Ошибка</Badge>;
       case "not-connected":
       default:
-        return <Badge variant="outline">Not Connected</Badge>;
+        return <Badge variant="outline">Не подключено</Badge>;
     }
   };
 
@@ -451,13 +455,13 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
         <DialogContent className="w-full max-w-3xl">
           <DialogHeader>
             <div className="flex items-center justify-between">
-              <DialogTitle>MCP Servers</DialogTitle>
+              <DialogTitle>Серверы MCP</DialogTitle>
             </div>
             <DialogDescription>
               <span className="inline-flex items-center gap-2">
                 <Info size={16} />
-                Connect to Model Context Protocol (MCP) servers to access
-                additional AI capabilities.
+                Подключитесь к серверам Model Context Protocol (MCP), чтобы
+                расширить возможности агента.
               </span>
             </DialogDescription>
           </DialogHeader>
@@ -477,7 +481,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                 return (
                   <div
                     key={server.id}
-                    className={`bg-card border shadow-none dark:border-t-1 dark:border-l-0 dark:border-r-0 dark:border-b-0 dark:shadow-md border-highlight rounded-lg p-4 ${server.enabled ? "" : "bg-muted"}`}
+                    className={`bg-card border shadow-none dark:border-t-1 dark:border-l-0 dark:border-r-0 dark:border-b-0 dark:shadow-md border-highlight rounded-lg p-4 ${server.enabled ? "" : ""}`}
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center gap-3">
@@ -503,10 +507,14 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                           size="icon"
                           onClick={() => handleToggleServer(server.id)}
                           title={
-                            server.enabled ? "Disable server" : "Enable server"
+                            server.enabled
+                              ? "Отключить сервер"
+                              : "Включить сервер"
                           }
                           aria-label={
-                            server.enabled ? "Disable server" : "Enable server"
+                            server.enabled
+                              ? "Отключить сервер"
+                              : "Включить сервер"
                           }
                         >
                           {server.enabled ? (
@@ -519,8 +527,8 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                           variant="ghost"
                           size="icon"
                           onClick={() => handleRemoveServer(server.id)}
-                          title="Delete server"
-                          aria-label="Delete server"
+                          title="Удалить сервер"
+                          aria-label="Удалить сервер"
                         >
                           <Trash2 size={16} />
                         </Button>
@@ -539,15 +547,15 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                           <div className="border rounded p-3 mb-3">
                             <p className="text-sm mb-2">
                               {state === "pending_auth"
-                                ? "Authentication is required to connect to this server."
-                                : "Authentication popup was blocked. You can open the authentication page manually:"}
+                                ? "Для подключения к этому серверу требуется аутентификация."
+                                : "Всплывающее окно аутентификации было заблокировано. Вы можете открыть страницу аутентификации вручную:"}
                             </p>
                             <div className="space-y-2">
                               <Button
                                 className="w-full"
                                 onClick={() => handleManualAuth(server.id)}
                               >
-                                Open Authentication Popup
+                                Открыть окно аутентификации
                               </Button>
                               {authUrl && (
                                 <a
@@ -556,7 +564,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                                   rel="noreferrer"
                                   className="block text-center text-sm text-primary underline"
                                 >
-                                  Or open in new tab instead
+                                  Или открыть в новой вкладке
                                 </a>
                               )}
                             </div>
@@ -566,7 +574,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                         {state === "ready" && tools.length > 0 && (
                           <div>
                             <h4 className="font-medium text-sm mb-2">
-                              Available Tools ({tools.length})
+                              Доступные инструменты ({tools.length})
                             </h4>
                             <div className="border rounded p-2 bg-muted max-h-24 overflow-y-auto">
                               <div className="flex flex-wrap gap-1">
@@ -576,7 +584,11 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                                       <PopoverTrigger asChild>
                                         <Badge
                                           variant={
-                                            tool.disabled ? "destructive" : tool.enabled ? "default" : "outline"
+                                            tool.disabled
+                                              ? "destructive"
+                                              : tool.enabled
+                                                ? "default"
+                                                : "outline"
                                           }
                                           className={`${
                                             tool.disabled
@@ -599,9 +611,10 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                                             <Badge
                                               variant="destructive"
                                               className="cursor-not-allowed"
-                                              title="This tool is disabled in GigaChat due to anyOf"
+                                              title="Этот инструмент отключён в GigaChat из‑за anyOf"
                                             >
-                                              Tool disabled in GigaChat because of anyOf
+                                              Инструмент отключён в GigaChat
+                                              из‑за anyOf
                                             </Badge>
                                           )}
                                           {tool.description && (
@@ -611,7 +624,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                                           )}
                                           <div className="flex items-center justify-between pt-1">
                                             <span className="text-xs">
-                                              Enabled
+                                              Включён
                                             </span>
                                             <Switch
                                               disabled={Boolean(tool.disabled)}
@@ -657,8 +670,8 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
               {servers.length === 0 && (
                 <div className="text-center py-8 text-muted-foreground">
                   <Info size={24} className="mx-auto mb-2" />
-                  <p>No MCP servers configured yet.</p>
-                  <p className="text-sm">Add your first server below.</p>
+                  <p>Пока не настроено ни одного сервера MCP.</p>
+                  <p className="text-sm">Добавьте первый сервер ниже.</p>
                 </div>
               )}
             </div>
@@ -666,12 +679,12 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
             {/* Add New Server */}
             <div className="border-t pt-4">
               <div className="flex items-center gap-3 mb-3">
-                <h3 className="font-medium text-sm">Add New Server</h3>
+                <h3 className="font-medium text-sm">Добавить новый сервер</h3>
                 <Badge
                   variant="outline"
                   className="cursor-pointer font-mono"
                   onClick={cycleNewServerTransportType}
-                  title="Click to cycle through transport types"
+                  title="Нажмите, чтобы переключить тип подключения"
                 >
                   {newServerTransportType.toUpperCase()}
                 </Badge>
@@ -679,7 +692,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
               <div className="flex gap-2">
                 <Input
                   type="text"
-                  placeholder="Enter MCP server URL"
+                  placeholder="Введите URL сервера MCP"
                   value={newServerUrl}
                   onChange={(e) => setNewServerUrl(e.target.value)}
                   onKeyDown={(e) => {
@@ -695,7 +708,6 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                   disabled={!newServerUrl.trim()}
                 >
                   <Plus size={16} />
-                  Add
                 </Button>
               </div>
               {!showAuthTokenInput && (
@@ -705,29 +717,26 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                     className="text-xs text-primary underline cursor-pointer"
                     onClick={() => setShowAuthTokenInput(true)}
                   >
-                    Add auth token
+                    Добавить токен аутентификации
                   </button>
                 </div>
               )}
               {showAuthTokenInput && (
                 <div className="mt-2 relative">
                   <Input
-                      type="text"
+                    type="text"
                     name="auth_token"
-                      autoComplete="off"
+                    autoComplete="off"
                     autoCorrect="off"
                     autoCapitalize="none"
                     spellCheck={false}
-                    data-protonpass-ignore="true"
-                    data-lpignore="true"
-                    data-1p-ignore="true"
-                      style={
-                        {
-                          WebkitTextSecurity: "disc",
-                          textSecurity: "disc",
-                        } as React.CSSProperties
-                      }
-                    placeholder="Enter auth token"
+                    style={
+                      {
+                        WebkitTextSecurity: "disc",
+                        textSecurity: "disc",
+                      } as React.CSSProperties
+                    }
+                    placeholder="Введите токен аутентификации"
                     value={newServerAuthToken}
                     onChange={(e) => setNewServerAuthToken(e.target.value)}
                   />
@@ -738,7 +747,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                           variant="ghost"
                           size="icon"
                           className="h-6 w-6 rounded-full border bg-card hover:bg-muted"
-                          aria-label="Remove auth token"
+                          aria-label="Удалить токен аутентификации"
                           onClick={() => {
                             setNewServerAuthToken("");
                             setShowAuthTokenInput(false);
@@ -748,7 +757,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                         </Button>
                       </TooltipTrigger>
                       <TooltipContent className="z-1000" sideOffset={4}>
-                        Remove auth token
+                        Удалить токен аутентификации
                       </TooltipContent>
                     </Tooltip>
                   </div>

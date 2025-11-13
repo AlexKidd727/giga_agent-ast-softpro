@@ -149,7 +149,8 @@ def {tool.__name__}(**kwargs):
 """
         )
     tool_url = os.getenv("TOOL_CLIENT_API", "http://127.0.0.1:8811")
-    prepend = f"""import importlib
+    prepend = f"""from app.utils import build_schema_from_json
+import importlib
 importlib.invalidate_caches()
 import pandas as pd
 import numpy as np

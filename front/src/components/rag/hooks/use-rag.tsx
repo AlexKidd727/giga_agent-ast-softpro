@@ -4,6 +4,7 @@ import { v4 as uuidv4 } from "uuid";
 import { Collection, CollectionCreate } from "@/types/collection";
 import { toast } from "react-toastify";
 import { LANGCONNECT_API_URL, session } from "@/components/rag/utils.ts";
+import { useSettings } from "@/components/Settings";
 
 export const DEFAULT_COLLECTION_NAME = "default_collection";
 
@@ -99,6 +100,9 @@ interface UseRagReturn {
   // Collection state and operations
   collections: Collection[];
   setCollections: Dispatch<SetStateAction<Collection[]>>;
+  activeCollections: Record<string, boolean>;
+  activateCollection: (collectionId: string) => void;
+  deactivateCollection: (collectionId: string) => void;
   collectionsLoading: boolean;
   setCollectionsLoading: Dispatch<SetStateAction<boolean>>;
   getCollections: (accessToken?: string) => Promise<Collection[]>;
@@ -150,6 +154,28 @@ export function useRag(): UseRagReturn {
     Collection | undefined
   >(undefined);
   const [initialSearchExecuted, setInitialSearchExecuted] = useState(false);
+  const { settings, setSettings } = useSettings();
+  const activeCollections: Record<string, boolean> = settings.activeCollections || {};
+
+  const activateCollection = useCallback((collectionId: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      activeCollections: {
+        ...(prev.activeCollections || {}),
+        [collectionId]: true,
+      },
+    }));
+  }, [setSettings]);
+
+  const deactivateCollection = useCallback((collectionId: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      activeCollections: {
+        ...(prev.activeCollections || {}),
+        [collectionId]: false,
+      },
+    }));
+  }, [setSettings]);
 
   // --- Initial Fetch ---
   const initialFetch = useCallback(async (accessToken: string) => {
@@ -176,6 +202,22 @@ export function useRag(): UseRagReturn {
     }
 
     setCollections(initCollections);
+    // Синхронизация активных коллекций со "входящими":
+    // - сохраняем статусы существующих, которые остались во входящих
+    // - удаляем отсутствующие
+    // - добавляем новые как enabled=true
+    setSettings((prev) => {
+      const prevMap = prev.activeCollections || {};
+      const next: Record<string, boolean> = {};
+      const incomingIds = new Set(initCollections.map((c) => c.uuid));
+      Object.entries(prevMap).forEach(([id, enabled]) => {
+        if (incomingIds.has(id)) next[id] = enabled as boolean;
+      });
+      initCollections.forEach((c) => {
+        if (!(c.uuid in next)) next[c.uuid] = true;
+      });
+      return { ...prev, activeCollections: next };
+    });
     const defaultCollection = initCollections[0];
     setSelectedCollection(defaultCollection);
 
@@ -442,9 +484,17 @@ export function useRag(): UseRagReturn {
       }
       const data = await response.json();
       setCollections((prevCollections) => [...prevCollections, data]);
+      // новая коллекция по умолчанию активна
+      setSettings((prev) => ({
+        ...prev,
+        activeCollections: {
+          ...(prev.activeCollections || {}),
+          [data.uuid]: true,
+        },
+      }));
       return data;
     },
-    [collections, session],
+    [collections, session, setSettings],
   );
 
   const updateCollection = useCallback(
@@ -566,8 +616,13 @@ export function useRag(): UseRagReturn {
           (collection) => collection.uuid !== collectionId,
         ),
       );
+      // удалить из активных
+      setSettings((prev) => {
+        const { [collectionId]: _removed, ...rest } = prev.activeCollections || {};
+        return { ...prev, activeCollections: rest };
+      });
     },
-    [collections, session],
+    [collections, session, setSettings],
   );
 
   // --- Return combined state and functions ---
@@ -580,6 +635,9 @@ export function useRag(): UseRagReturn {
     // Collections
     collections,
     setCollections,
+    activeCollections,
+    activateCollection,
+    deactivateCollection,
     collectionsLoading,
     setCollectionsLoading,
     getCollections,

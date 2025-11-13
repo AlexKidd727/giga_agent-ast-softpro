@@ -11,8 +11,6 @@ import { ChevronLeft, ChevronRight, Pencil, RefreshCw } from "lucide-react";
 import { useSelectedAttachments } from "../hooks/SelectedAttachmentsContext.tsx";
 import TextMarkdown from "./attachments/TextMarkdown.tsx";
 
- 
-
 function BranchSwitcher({
   thread,
   message,
@@ -37,7 +35,7 @@ function BranchSwitcher({
           onSelect(prevBranch);
         }}
         disabled={thread.isLoading}
-        className="transition-transform duration-200 bg-transparent border-0 text-foreground p-0 disabled:opacity-50 hover:scale-110 disabled:hover:scale-100"
+        className="transition-transform duration-200 bg-transparent border-0 text-foreground p-0 disabled:opacity-50 cursor-pointer hover:scale-110 disabled:hover:scale-100"
       >
         <ChevronLeft size={16} />
       </button>
@@ -51,15 +49,13 @@ function BranchSwitcher({
           onSelect(nextBranch);
         }}
         disabled={thread.isLoading}
-        className="transition-transform duration-200 bg-transparent border-0 text-foreground p-0 disabled:opacity-50 hover:scale-110 disabled:hover:scale-100"
+        className="transition-transform duration-200 bg-transparent border-0 text-foreground p-0 disabled:opacity-50 cursor-pointer hover:scale-110 disabled:hover:scale-100"
       >
         <ChevronRight size={16} />
       </button>
     </div>
   );
 }
-
- 
 
 interface MessageProps {
   message: Message_;
@@ -291,7 +287,7 @@ const Message: React.FC<MessageProps> = ({
                     setSelectedAttachments(message.additional_kwargs.selected);
                   else clear();
                 }}
-                className="transition-transform duration-200 bg-transparent border-0 text-foreground p-0 disabled:opacity-50 hover:scale-110 disabled:hover:scale-100"
+                className="transition-transform duration-200 bg-transparent border-0 text-foreground p-0 disabled:opacity-50 cursor-pointer hover:scale-110 disabled:hover:scale-100"
               >
                 <Pencil size={16} />
               </button>
@@ -300,7 +296,7 @@ const Message: React.FC<MessageProps> = ({
               <button
                 disabled={!thread || thread.isLoading}
                 onClick={onRefresh}
-                className="transition-transform duration-200 bg-transparent border-0 text-foreground p-0 disabled:opacity-50 hover:scale-110 disabled:hover:scale-100"
+                className="transition-transform duration-200 cursor-pointer bg-transparent border-0 text-foreground p-0 disabled:opacity-50 cursor-pointer hover:scale-110 disabled:hover:scale-100"
               >
                 <RefreshCw size={16} />
               </button>

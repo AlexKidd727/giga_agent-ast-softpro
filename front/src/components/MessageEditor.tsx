@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { FileData, GraphState } from "../interfaces.ts";
 import { useFileUpload } from "../hooks/useFileUploads.ts";
 import { Paperclip } from "lucide-react";
@@ -15,8 +21,9 @@ import { Checkpoint, HumanMessage, Message } from "@langchain/langgraph-sdk";
 import OverlayPortal from "./OverlayPortal.tsx";
 import type { UseStream } from "@langchain/langgraph-sdk/react";
 import { useSelectedAttachments } from "../hooks/SelectedAttachmentsContext.tsx";
-
- 
+import { useUserInfo } from "@/components/providers/user-info.tsx";
+import { useRagContext } from "@/components/rag/providers/RAG.tsx";
+import { useSettings } from "@/components/Settings.tsx";
 
 interface MessageEditorProps {
   message: Message;
@@ -38,7 +45,28 @@ const MessageEditor: React.FC<MessageEditorProps> = ({
     useFileUpload();
   const [messageText, setMessageText] = useState("");
   const { selected } = useSelectedAttachments();
+  const { collections, activeCollections } = useRagContext();
   const selectedCount = Object.keys(selected).length;
+  const { settings } = useSettings();
+
+  const enabledCollections = useMemo(() => {
+    const active = Object.keys(activeCollections).filter(
+      (key) => activeCollections[key],
+    );
+    return collections.filter((collection) => active.includes(collection.uuid));
+  }, [activeCollections, collections]);
+
+  const { mcpTools } = useUserInfo();
+
+  const mcpToolsPayload = useMemo(
+    () =>
+      mcpTools.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    [mcpTools],
+  );
 
   useEffect(() => {
     // @ts-ignore
@@ -98,7 +126,13 @@ const MessageEditor: React.FC<MessageEditorProps> = ({
     const parentCheckpoint = meta?.firstSeenState?.parent_checkpoint;
 
     thread?.submit(
-      { messages: [newMessage] },
+      {
+        messages: [newMessage],
+        mcp_tools: mcpToolsPayload,
+        collections: enabledCollections,
+        secrets: settings.contextSecrets,
+        instructions: settings.contextInstructions,
+      },
       {
         optimisticValues(prev: GraphState) {
           const prevMessages = prev.messages ?? [];
@@ -120,7 +154,18 @@ const MessageEditor: React.FC<MessageEditorProps> = ({
         checkpoint: parentCheckpoint,
       },
     );
-  }, [thread, messageText, message, onCancel, getAllFileData, selected]);
+  }, [
+    thread,
+    messageText,
+    message,
+    onCancel,
+    getAllFileData,
+    selected,
+    settings.contextInstructions,
+    settings.contextSecrets,
+    enabledCollections,
+    mcpToolsPayload,
+  ]);
 
   return (
     <>
@@ -154,7 +199,7 @@ const MessageEditor: React.FC<MessageEditorProps> = ({
             type="button"
             title="Отменить"
             onClick={onCancel}
-            className="px-3 py-2 rounded-md bg-background text-foreground text-sm transition-colors hover:bg-accent"
+            className="px-3 py-2 rounded-md bg-background text-foreground text-sm cursor-pointer transition-colors hover:bg-accent"
           >
             Отменить
           </button>
@@ -162,7 +207,7 @@ const MessageEditor: React.FC<MessageEditorProps> = ({
             type="button"
             title="Отправить"
             onClick={handleSendMessage}
-            className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm transition-colors hover:opacity-90"
+            className="px-3 py-2 rounded-md bg-primary text-primary-foreground text-sm cursor-pointer transition-colors hover:opacity-90"
           >
             Отправить
           </button>
@@ -170,7 +215,9 @@ const MessageEditor: React.FC<MessageEditorProps> = ({
         <div
           className={[
             "absolute bottom-2 left-20 text-muted-foreground text-xs pointer-events-none transition-opacity duration-100",
-            selectedCount > 0 ? "opacity-100 translate-y-0" : "opacity-0 translate-y-1",
+            selectedCount > 0
+              ? "opacity-100 translate-y-0"
+              : "opacity-0 translate-y-1",
           ].join(" ")}
         >
           Выбрано вложений: {selectedCount}

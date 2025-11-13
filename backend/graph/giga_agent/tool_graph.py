@@ -36,6 +36,7 @@ from giga_agent.tools.rag import get_rag_info
 from giga_agent.utils.env import load_project_env
 from giga_agent.utils.jupyter import JupyterClient, prepend_code
 from giga_agent.utils.lang import LANG
+from giga_agent.utils.mcp import process_mcp_content
 
 load_project_env()
 
@@ -73,7 +74,10 @@ def generate_user_info(state: AgentState):
     lang = ""
     if not LANG.startswith("ru"):
         lang = f"\nВыбранный язык пользователя: {LANG}\n"
-    return f"<user_info>\nТекущая дата: {datetime.today().strftime('%d.%m.%Y %H:%M')}{lang}</user_info>"
+    instructions = ""
+    if not state["messages"]:
+        instructions = state.get("instructions", "")
+    return f"<user_info>\nТекущая дата: {datetime.today().strftime('%d.%m.%Y %H:%M')}{lang}{instructions}</user_info>"
 
 
 def get_code_arg(message):
@@ -92,7 +96,7 @@ async def before_agent(state: AgentState):
     tools = state.get("tools")
     if not kernel_id:
         kernel_id = (await client.start_kernel())["id"]
-        await client.execute(kernel_id, "function_results = []")
+        await client.execute(kernel_id, "function_results = []\nSECRETS = {}")
     if not tools:
         tools = await tool_client.get_tools()
     if state["messages"][-1].type == "human":
@@ -137,17 +141,81 @@ async def before_agent(state: AgentState):
 
 
 NOTES_PROMPT = """
-===
+====
 
-ЗАМЕТКИ ПОЛЬЗОВАТЕЛЯ
-{0} 
+ДОПОЛНИТЕЛЬНЫЕ ИНСТРУКЦИИ
+
+Эти инструкции уточняют стиль и ожидания пользователя. Ты ОБЯЗАН учитывать их при выполнении каждой задачи.
+
+---
+{0}
+---
+
+====
+"""
+
+SECRETS_PROMPTS = """
+====
+
+СЕКРЕТЫ (SECRETS)
+
+Пользователь предоставил тебе доступ к конфиденциальным данным (токенам, API ключам, паролям и другим секретам).
+
+# Правила работы с секретами
+
+1. **Доступ в коде**: Все секреты доступны в инструменте `python` через словарь `SECRETS`.
+2. **Синтаксис использования**: 
+   ```python
+   # Получение значения секрета
+   api_key = SECRETS["название_секрета"]
+   token = SECRETS["github_token"]
+   ```
+3. **БЕЗОПАСНОСТЬ (КРИТИЧНО)**:
+   - НИКОГДА не выводи значения секретов в открытом виде
+   - НИКОГДА не включай значения секретов в print(), return или любой другой вывод
+   - НИКОГДА не передавай значения секретов в сообщениях пользователю
+   - МОЖНО упоминать названия секретов (например: "Использую секрет 'api_key'")
+   - МОЖНО упоминать описания секретов
+   - МОЖНО говорить о типе секрета (токен, пароль, ключ)
+4. **Обработка ошибок**: Если секрет не найден, сообщи пользователю название отсутствующего секрета, но НЕ его значение.
+
+# Доступные секреты
+
+{0}
+====
 """
 
 
-def get_user_notes():
-    if os.getenv("GIGA_AGENT_USER_NOTES"):
-        return NOTES_PROMPT.format(os.getenv("GIGA_AGENT_USER_NOTES"))
+def get_user_notes(state: AgentState):
+    instructions = os.getenv("GIGA_AGENT_USER_NOTES", "") + state.get(
+        "instructions", ""
+    )
+    if instructions:
+        return NOTES_PROMPT.format(instructions)
     return ""
+
+
+async def get_user_secrets(state: AgentState):
+    user_secrets = state.get("secrets", [])
+    if not user_secrets:
+        return ""
+    secret_parts = []
+    code_parts = []
+    for user_secret in user_secrets:
+        name = user_secret.get("name")
+        value = user_secret.get("value")
+        description = user_secret.get("description")
+        if not name or not value:
+            continue
+        secret_part = (
+            f"Название: {user_secret['name']}\nЗначение: {user_secret['value'][:4]}..."
+        )
+        if description:
+            secret_part += f"\nОписание: {description}"
+        secret_parts.append(secret_part)
+        code_parts.append(f"SECRETS['{name}'] = '{value}'")
+    await client.execute(state.get("kernel_id"), "\n".join(code_parts))
+    return SECRETS_PROMPTS.format("\n".join(secret_parts))
 
 
 async def agent(state: AgentState):
@@ -168,7 +236,8 @@ async def agent(state: AgentState):
         {
             "messages": state["messages"],
             "rag_info": get_rag_info(state.get("collections", [])),
-            "user_notes": get_user_notes(),
+            "user_instructions": get_user_notes(state),
+            "user_secrets": await get_user_secrets(state),
         }
     )
     message.additional_kwargs.pop("function_call", None)
@@ -178,7 +247,21 @@ async def agent(state: AgentState):
 
 async def tool_call(state: AgentState, config: RunnableConfig):
     action = copy.deepcopy(state["messages"][-1].tool_calls[0])
-    value = interrupt({"type": "approve"})
+    is_frontend_tool = False
+    for tool in state.get("mcp_tools", []):
+        if tool.get("name") == action.get("name"):
+            is_frontend_tool = True
+            break
+    if is_frontend_tool:
+        value = interrupt(
+            {
+                "type": "tool_call",
+                "tool_name": action.get("name"),
+                "args": action.get("args"),
+            }
+        )
+    else:
+        value = interrupt({"type": "approve"})
     tool_client = ToolClient()
     if value.get("type") == "comment":
         return {
@@ -193,7 +276,7 @@ async def tool_call(state: AgentState, config: RunnableConfig):
             )
         }
     tool_call_index = state.get("tool_call_index", -1)
-    if action.get("name") == "python":
+    if action.get("name") == "python" and not is_frontend_tool:
         if os.getenv("REPL_FROM_MESSAGE", "1") == "1":
             action["args"]["code"] = get_code_arg(state["messages"][-1].content)
         else:
@@ -218,30 +301,46 @@ async def tool_call(state: AgentState, config: RunnableConfig):
             config["metadata"]["checkpoint_id"],
         )
     try:
-        state_ = copy.deepcopy(state)
-        state_.pop("messages")
-        tool_client.set_state_data(
-            config["metadata"]["thread_id"], config["metadata"]["checkpoint_id"]
-        )
-        if action.get("name") not in AGENT_MAP:
-            result = await tool_client.aexecute(action.get("name"), action.get("args"))
+        tool_attachments = []
+        if not is_frontend_tool:
+            message = ""
+            state_ = copy.deepcopy(state)
+            state_.pop("messages")
+            tool_client.set_state_data(
+                config["metadata"]["thread_id"], config["metadata"]["checkpoint_id"]
+            )
+            if action.get("name") not in AGENT_MAP:
+                result = await tool_client.aexecute(
+                    action.get("name"), action.get("args")
+                )
+            else:
+                tool_node = ToolNode(tools=list(AGENT_MAP.values()))
+                injected_args = tool_node.inject_tool_args(
+                    {
+                        "name": action.get("name"),
+                        "args": action.get("args"),
+                        "id": "123",
+                    },
+                    state,
+                    None,
+                )["args"]
+                result = await AGENT_MAP[action.get("name")].ainvoke(injected_args)
+            try:
+                result = json.loads(result)
+            except Exception as e:
+                pass
         else:
-            tool_node = ToolNode(tools=list(AGENT_MAP.values()))
-            injected_args = tool_node.inject_tool_args(
-                {"name": action.get("name"), "args": action.get("args"), "id": "123"},
-                state,
-                None,
-            )["args"]
-            result = await AGENT_MAP[action.get("name")].ainvoke(injected_args)
+            result, tool_attachments, message = await process_mcp_content(
+                value.get("result", {}).get("content", {}),
+                config["metadata"]["thread_id"],
+            )
         tool_call_index += 1
-        try:
-            result = json.loads(result)
-        except Exception as e:
-            pass
+
         if result:
             add_data = {
                 "data": result,
-                "message": f"Результат функции сохранен в переменную `function_results[{tool_call_index}]['data']` ",
+                "message": message
+                + f"Результат функции сохранен в переменную `function_results[{tool_call_index}]['data']` ",
             }
             await client.execute(
                 state.get("kernel_id"), f"function_results.append({repr(add_data)})"
@@ -259,8 +358,9 @@ async def tool_call(state: AgentState, config: RunnableConfig):
             if action.get("name") == "get_urls":
                 add_data["message"] += result.pop("attention")
         else:
+            if message:
+                result = {"result": result, "message": message}
             add_data = result
-        tool_attachments = []
         if isinstance(result, dict) and "giga_attachments" in result:
             add_data = result
             tool_attachments = result.pop("giga_attachments")

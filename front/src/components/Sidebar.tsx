@@ -29,7 +29,6 @@ const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
   const [isDark, setIsDark] = useState<boolean>(false);
 
   const didInitRef = useRef<boolean>(false);
-  const autoModeRef = useRef<boolean>(false);
 
   // Инициализация темы из системных настроек/локального значения (без анимации)
   useEffect(() => {
@@ -39,7 +38,6 @@ const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
       typeof window !== "undefined" &&
       window.matchMedia &&
       window.matchMedia("(prefers-color-scheme: dark)").matches;
-    autoModeRef.current = !stored; // если нет сохранённого выбора — следуем системе
     const initialDark = stored ? stored === "dark" : prefersDark;
     setIsDark(initialDark);
     if (initialDark) {
@@ -55,9 +53,7 @@ const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
     if (typeof window === "undefined" || !window.matchMedia) return;
     const media = window.matchMedia("(prefers-color-scheme: dark)");
     const onChange = (e: MediaQueryListEvent) => {
-      if (autoModeRef.current) {
-        setIsDark(e.matches);
-      }
+      setIsDark(e.matches);
     };
     if (media.addEventListener) {
       media.addEventListener("change", onChange);
@@ -90,11 +86,7 @@ const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
     }
     // Храним выбор только при ручном переключении; в авто-режиме — очищаем
     try {
-      if (autoModeRef.current) {
-        localStorage.removeItem("theme");
-      } else {
-        localStorage.setItem("theme", isDark ? "dark" : "light");
-      }
+      localStorage.setItem("theme", isDark ? "dark" : "light");
     } catch {}
     return () => window.clearTimeout(timeout);
   }, [isDark]);
@@ -118,7 +110,6 @@ const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
     e.stopPropagation();
     navigate("/rag");
   };
-
 
   const handleNewChat = () => {
     navigate("/");
@@ -204,7 +195,6 @@ const SidebarComponent = ({ children, onNewChat }: SidebarProps) => {
           <Switch
             checked={isDark}
             onCheckedChange={(checked) => {
-              autoModeRef.current = false; // пользователь зафиксировал выбор
               setIsDark(checked);
             }}
           />

@@ -6,7 +6,16 @@ import React, {
   useMemo,
 } from "react";
 import { HumanMessage } from "@langchain/langgraph-sdk";
-import { Check, Paperclip, Send, X, Settings2 } from "lucide-react";
+import {
+  Check,
+  Paperclip,
+  Send,
+  X,
+  Settings2,
+  Brain,
+  Files,
+  Cog,
+} from "lucide-react";
 import { useSettings } from "./Settings.tsx";
 import { useFileUpload, UploadedFile } from "../hooks/useFileUploads";
 import { useSelectedAttachments } from "../hooks/SelectedAttachmentsContext.tsx";
@@ -25,7 +34,15 @@ import { FileData, GraphState, GraphTemplate } from "../interfaces.ts";
 import { BROWSER_USE_NAME } from "../config.ts";
 import { UseStream } from "@langchain/langgraph-sdk/react";
 import { useRagContext } from "@/components/rag/providers/RAG.tsx";
-import { Tool } from "mcp-use/react";
+import Spinner from "./Spinner.tsx";
+import { AnimatePresence, motion } from "framer-motion";
+import { useUserInfo } from "@/components/providers/user-info.tsx";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 const MAX_TEXTAREA_HEIGHT = 200; // макс высота в px
 
@@ -33,24 +50,29 @@ const MAX_TEXTAREA_HEIGHT = 200; // макс высота в px
 
 interface InputAreaProps {
   thread?: UseStream<GraphState, GraphTemplate>;
-  onOpenSettings?: () => void;
-  mcpTools: Tool[];
 }
 
-const InputArea: React.FC<InputAreaProps> = ({
-  thread,
-  onOpenSettings,
-  mcpTools,
-}) => {
+const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
   const [message, setMessage] = useState("");
-  const { collections } = useRagContext();
   const [enlargedImage, setEnlargedImage] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textRef = useRef<HTMLTextAreaElement>(null);
-  const { settings } = useSettings();
   const { uploads, uploadFiles, removeUpload, resetUploads } = useFileUpload();
   const { selected, clear } = useSelectedAttachments();
   const autoApproveLockRef = useRef<unknown>(null);
+  const [isMCPLoading, setIsMCPLoading] = useState(false);
+
+  const { collections, activeCollections } = useRagContext();
+  const { settings } = useSettings();
+  const { mcpTools, openMcpModal, openContextModal, openCollectionsModal } =
+    useUserInfo();
+
+  const enabledCollections = useMemo(() => {
+    const active = Object.keys(activeCollections).filter(
+      (key) => activeCollections[key],
+    );
+    return collections.filter((collection) => active.includes(collection.uuid));
+  }, [activeCollections, collections]);
 
   const mcpToolsPayload = useMemo(
     () =>
@@ -80,8 +102,10 @@ const InputArea: React.FC<InputAreaProps> = ({
       thread?.submit(
         {
           messages: [newMessage],
-          collections: collections,
+          collections: enabledCollections,
           mcp_tools: mcpToolsPayload,
+          secrets: settings.contextSecrets,
+          instructions: settings.contextInstructions,
         },
         {
           optimisticValues(prev) {
@@ -94,7 +118,15 @@ const InputArea: React.FC<InputAreaProps> = ({
         },
       );
     },
-    [thread, selected, clear, collections, mcpToolsPayload],
+    [
+      thread,
+      selected,
+      clear,
+      mcpToolsPayload,
+      enabledCollections,
+      settings.contextInstructions,
+      settings.contextSecrets,
+    ],
   );
   const handleContinueThread = useCallback(
     async (data: any) => {
@@ -137,17 +169,54 @@ const InputArea: React.FC<InputAreaProps> = ({
   }, [message]);
 
   const handleContinue = useCallback(
-    (type: "comment" | "approve") => {
-      void handleContinueThread({ type, message });
+    async (type: "comment" | "approve") => {
+      if (
+        thread?.interrupt?.value?.type === "tool_call" &&
+        thread?.interrupt?.value?.args &&
+        thread?.interrupt?.value?.tool_name &&
+        !message
+      ) {
+        const tool = mcpTools.find(
+          (t) => t.name === thread.interrupt?.value?.tool_name,
+        );
+        if (tool) {
+          setIsMCPLoading(true);
+          tool
+            .callTool(thread.interrupt.value.args)
+            .then((result) => {
+              void handleContinueThread({ type, result });
+            })
+            // @ts-ignore
+            .catch((reason) => {
+              void handleContinueThread({
+                type: "comment",
+                message:
+                  "Не удалось подключиться к MCP. Попроси пользователя проверить подключение " +
+                  (reason ? reason : ""),
+              });
+            })
+            .finally(() => {
+              setIsMCPLoading(false);
+            });
+        } else {
+          void handleContinueThread({
+            type: "comment",
+            message:
+              "Не удалось найти нужный MCP. Попроси пользователя проверить подключенные MCP",
+          });
+        }
+      } else {
+        void handleContinueThread({ type, message });
+      }
       setMessage("");
     },
-    [setMessage, handleContinueThread, message],
+    [mcpTools, setMessage, handleContinueThread, message, thread?.interrupt],
   );
 
   useEffect(() => {
     const canAutoApprove =
       !!thread?.interrupt &&
-      thread?.interrupt.value?.type === "approve" &&
+      ["approve", "tool_call"].includes(thread?.interrupt.value?.type ?? "") &&
       settings.autoApprove;
 
     const interruptKey = thread?.interrupt?.value;
@@ -159,14 +228,15 @@ const InputArea: React.FC<InputAreaProps> = ({
 
     if (autoApproveLockRef.current === interruptKey) return;
 
-    if (thread?.isLoading) return;
+    if (thread?.isLoading || isMCPLoading) return;
 
     autoApproveLockRef.current = interruptKey;
-    handleContinue("approve");
+    void handleContinue("approve");
   }, [
     thread?.interrupt,
     thread?.interrupt?.value,
     thread?.isLoading,
+    isMCPLoading,
     settings.autoApprove,
     handleContinue,
   ]);
@@ -184,7 +254,7 @@ const InputArea: React.FC<InputAreaProps> = ({
       e.preventDefault();
       if (!thread?.isLoading && !isUploading) {
         if (thread?.interrupt) {
-          handleContinue(message ? "comment" : "approve");
+          void handleContinue(message ? "comment" : "approve");
         } else {
           handleSend();
         }
@@ -208,67 +278,120 @@ const InputArea: React.FC<InputAreaProps> = ({
           ref={fileInputRef}
           onChange={handleFileChange}
           multiple
-          disabled={thread?.isLoading}
+          disabled={thread?.isLoading || isMCPLoading}
         />
         <div className="flex flex-col items-center gap-1">
-          <button
-            type="button"
-            onClick={onOpenSettings}
-            disabled={thread?.isLoading}
-            title="Открыть настройки"
-            className="w-9 h-9 p-0 rounded-full text-foreground flex items-center justify-center transition-colors cursor-pointer disabled:bg-secondary disabled:cursor-not-allowed"
-          >
-            <Settings2 />
-          </button>
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                type="button"
+                disabled={thread?.isLoading || isMCPLoading}
+                title="Открыть настройки"
+                className="w-9 h-9 p-0 rounded-full text-foreground flex items-center justify-center transition-colors cursor-pointer outline-hidden disabled:opacity-67"
+              >
+                <Settings2 />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" sideOffset={3}>
+              <DropdownMenuItem onSelect={openContextModal}>
+                <Brain className={"size-5"} />
+                <span>Контекст</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={openMcpModal}>
+                <Cog className={"size-5"} />
+                <span>Инструменты</span>
+              </DropdownMenuItem>
+              <DropdownMenuItem onSelect={openCollectionsModal}>
+                <Files className={"size-5"} />
+                <span>Знания</span>
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            disabled={thread?.isLoading}
+            disabled={thread?.isLoading || isMCPLoading}
             title="Добавить вложения"
-            className="w-9 h-9 p-0 rounded-full text-foreground flex items-center justify-center transition-colors cursor-pointer disabled:bg-secondary disabled:cursor-not-allowed"
+            className="w-9 h-9 p-0 rounded-full text-foreground flex items-center justify-center transition-colors cursor-pointer outline-hidden disabled:opacity-67"
           >
             <Paperclip />
           </button>
         </div>
 
         <textarea
-          placeholder="Спросите что-нибудь…"
+          placeholder={
+            thread?.interrupt
+              ? "Принять / Отменить с комментарием…"
+              : "Спросите что-нибудь…"
+          }
           ref={textRef}
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           onKeyDown={handleKeyDown}
-          disabled={thread?.isLoading}
+          disabled={thread?.isLoading || isMCPLoading}
           className="flex-1 min-h-[76px] max-h-[200px] resize-none font-sans p-3 rounded-md text-foreground placeholder:text-muted-foreground overflow-y-auto outline-none border-0 disabled:opacity-60"
         />
         {thread?.interrupt &&
         thread?.interrupt.value &&
-        thread.interrupt.value.type === "approve" &&
-        !settings.autoApprove ? (
+        ["approve", "tool_call"].includes(thread.interrupt.value.type) &&
+        (!settings.autoApprove ||
+          thread.interrupt.value.type === "tool_call") ? (
           <>
-            <button
-              onClick={() => handleContinue("comment")}
-              disabled={thread.isLoading}
-              title="Отменить выполнение"
-              className="w-9 h-9 p-0 rounded-full bg-red-600 text-white flex items-center justify-center transition-colors hover:bg-red-700 disabled:opacity-60"
-            >
-              <X />
-            </button>
-            <button
-              onClick={() => handleContinue("approve")}
-              disabled={thread.isLoading}
-              title="Подтвердить выполнение"
-              className="w-9 h-9 p-0 rounded-full bg-green-600 text-white flex items-center justify-center transition-colors hover:bg-green-700 disabled:opacity-60"
-            >
-              <Check />
-            </button>
+            {isMCPLoading ? (
+              <div className="w-9 h-9 flex items-center justify-center">
+                <Spinner size="16" />
+              </div>
+            ) : (
+              <>
+                <motion.div layout className="flex items-center gap-2">
+                  <motion.button
+                    layout
+                    transition={{ type: "spring", stiffness: 500, damping: 35 }}
+                    onClick={() => handleContinue("comment")}
+                    disabled={thread.isLoading || isMCPLoading}
+                    title="Отменить выполнение"
+                    className="w-9 h-9 p-0 rounded-full bg-red-600 text-white flex items-center justify-center transition-colors hover:bg-red-700 disabled:opacity-67"
+                  >
+                    <X />
+                  </motion.button>
+                  <AnimatePresence mode="popLayout">
+                    {!message.trim() && (
+                      <motion.button
+                        key="approve-btn"
+                        layout
+                        initial={{ x: 24, scale: 1, opacity: 1 }}
+                        animate={{ x: 0, scale: 1, opacity: 1 }}
+                        exit={{ x: 24, scale: 1, opacity: 1 }}
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
+                          damping: 35,
+                        }}
+                        onClick={() => handleContinue("approve")}
+                        disabled={thread.isLoading || isMCPLoading}
+                        title="Подтвердить выполнение"
+                        className="w-9 h-9 p-0 rounded-full bg-green-600 text-white flex items-center justify-center transition-colors hover:bg-green-700 disabled:opacity-67"
+                      >
+                        <Check />
+                      </motion.button>
+                    )}
+                  </AnimatePresence>
+                </motion.div>
+              </>
+            )}
           </>
         ) : (
           <button
             type="button"
             onClick={handleSend}
-            disabled={thread?.isLoading || !message.trim() || isUploading}
+            disabled={
+              thread?.isLoading ||
+              isMCPLoading ||
+              !message.trim() ||
+              isUploading
+            }
             title="Отправить"
-            className="w-9 h-9 p-0 rounded-full text-foreground flex items-center justify-center transition-colors cursor-pointer disabled:cursor-default disabled:opacity-60"
+            className="w-9 h-9 p-0 rounded-full text-foreground flex items-center justify-center transition-colors cursor-pointer outline-hidden disabled:opacity-67"
           >
             <Send />
           </button>

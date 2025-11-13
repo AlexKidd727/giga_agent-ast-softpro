@@ -104,7 +104,9 @@ export const ToolExecuting = ({ messages, thread }: ToolExecProps) => {
       <div className="flex flex-col border border-2 border-border text-foreground p-4 rounded-lg flex-1 cursor-pointer max-w-full justify-center">
         <div className="flex items-center">
           <span className="text-sm ml-4">
-            Инструмент выполняется{toolName} <Spinner />
+            <span className="flex items-center">
+              Инструмент выполняется{toolName} <Spinner size="12" />
+            </span>
             {displayed && (
               <>
                 <br />
@@ -177,7 +179,7 @@ const ToolMessage: React.FC<ToolMessageProps> = ({ message, name }) => {
             >
               <ChevronRight size={16} />
             </span>
-            <span className="text-sm">
+            <span className="text-sm flex align-middle">
               Результат выполнения инструмента{toolName}
             </span>
           </div>

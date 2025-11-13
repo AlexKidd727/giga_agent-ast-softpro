@@ -35,6 +35,10 @@ export default defineConfig(({ mode }) => {
       process.env.LANGCONNECT_API_SECRET_TOKEN ||
       "";
   }
+  if (!process.env.VITE_MCP_PROXY_URL) {
+    process.env.VITE_MCP_PROXY_URL =
+      env.VITE_MCP_PROXY_URL || process.env.VITE_MCP_PROXY_URL || "";
+  }
 
   return {
     plugins: [

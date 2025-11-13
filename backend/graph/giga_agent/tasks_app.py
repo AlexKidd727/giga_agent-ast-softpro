@@ -1,5 +1,4 @@
 import asyncio
-import base64
 import io
 import json
 import os
@@ -8,16 +7,14 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from uuid import uuid4
 from typing import Optional
-from urllib.parse import unquote, urlsplit
 
-from fastapi import FastAPI, HTTPException, UploadFile, File, Request, Response
-from fastapi.responses import HTMLResponse, StreamingResponse
+from fastapi import FastAPI, HTTPException, UploadFile, File
+from fastapi.responses import HTMLResponse
 from sqlmodel import SQLModel, Field, select, func
 from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlalchemy.ext.asyncio import create_async_engine
 from sqlalchemy.ext.asyncio import AsyncEngine
 from sqlalchemy.orm import sessionmaker
-import aiohttp
 
 from langgraph_sdk import get_client
 
@@ -220,143 +217,3 @@ async def upload_image(file: UploadFile = File(...)):
     else:
         uploaded_id = str(uuid.uuid4())
     return {"id": uploaded_id}
-
-
-# --- Общие утилиты для MCP-прокси (HTTP/SSE через aiohttp) ---
-HOP_BY_HOP_HEADERS = {
-    "host",
-    "connection",
-    "content-length",
-    "transfer-encoding",
-    "keep-alive",
-    "proxy-authenticate",
-    "proxy-authorization",
-    "te",
-    "trailer",
-    "upgrade",
-}
-
-
-def _filter_forward_headers(request: Request) -> dict[str, str]:
-    headers: dict[str, str] = {}
-    for k, v in request.headers.items():
-        lk = k.lower()
-        if lk in HOP_BY_HOP_HEADERS or lk == "accept-encoding":
-            continue
-        headers[k] = v
-    # Для корректного SSE лучше отключить сжатие
-    headers["Accept-Encoding"] = "identity"
-    return headers
-
-
-def _extract_target_from_marker(request: Request, marker: str) -> Optional[str]:
-    full_url = str(request.url)
-    idx = full_url.find(marker)
-    if idx < 0:
-        return None
-    raw = unquote(full_url[idx + len(marker) :])
-    # Нормализация случаев, когда промежуточный прокси/сервер сжал '://' до ':/'
-    if raw.startswith("http:/") and not raw.startswith("http://"):
-        raw = "http://" + raw[len("http:/") :]
-    elif raw.startswith("https:/") and not raw.startswith("https://"):
-        raw = "https://" + raw[len("https:/") :]
-    if not (raw.startswith("http://") or raw.startswith("https://")):
-        return None
-    return raw
-
-
-async def _proxy_with_aiohttp(request: Request, target_raw: str, origin: str) -> Response:
-    forward_headers = _filter_forward_headers(request)
-    method = request.method.upper()
-    content: bytes | None = None
-    if method not in ("GET", "HEAD"):
-        content = await request.body()
-
-    timeout = aiohttp.ClientTimeout(total=None)
-    session = aiohttp.ClientSession(timeout=timeout)
-    try:
-        resp = await session.request(
-            method,
-            target_raw,
-            headers=forward_headers,
-            data=content,
-            allow_redirects=True,
-        )
-
-        resp_headers: dict[str, str] = {}
-        for k, v in resp.headers.items():
-            lk = k.lower()
-            if lk in ("content-encoding", "transfer-encoding", "content-length", "connection"):
-                continue
-            resp_headers[k] = v
-        # CORS заголовки для ответа
-        resp_headers["Access-Control-Allow-Origin"] = origin
-        resp_headers["Access-Control-Allow-Credentials"] = "true"
-
-        status = resp.status
-        media_type = resp.headers.get("content-type")
-
-        async def stream_body():
-            try:
-                async for chunk in resp.content:
-                    if not chunk:
-                        continue
-                    yield chunk
-            finally:
-                await resp.release()
-                await session.close()
-
-        return StreamingResponse(
-            stream_body(),
-            status_code=status,
-            media_type=media_type,
-            headers=resp_headers,
-        )
-    except Exception as e:
-        await session.close()
-        return Response(
-            content=f"Upstream request failed: {str(e)}",
-            status_code=502,
-            headers={
-                "Access-Control-Allow-Origin": origin,
-                "Access-Control-Allow-Credentials": "true",
-            },
-        )
-
-@app.api_route("/mcp/{target_path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-async def mcp_proxy(target_path: str, request: Request):
-    """
-    Проксирование HTTP/SSE на произвольный целевой URL через шаблон /mcp/@(url)
-    Повторяет логику dev-middleware из Vite: /mcp/@https://host/path?query → проксируем на targetRaw.
-    """
-    origin = request.headers.get("origin") or "*"
-    marker = "/mcp/@"
-    target_raw = _extract_target_from_marker(request, marker)
-    if not target_raw:
-        return Response(content="Invalid target URL", status_code=400)
-    return await _proxy_with_aiohttp(request, target_raw, origin)
-
-
-@app.api_route("/.well-known/{prefix:path}/@{target_path:path}", methods=["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"])
-async def mcp_proxy_wellknown(prefix: str, target_path: str, request: Request):
-    """
-    Альтернативная точка входа под /.well-known/<prefix>/@<url>, проксирует HTTP/SSE на target URL.
-    Используется Nginx-правилом для OAuth discovery маршрута /.well-known/<prefix>/api/mcp/@<url>.
-    """
-    origin = request.headers.get("origin") or "*"
-    marker = f"/.well-known/{prefix}/@"
-    target_raw = _extract_target_from_marker(request, marker)
-    if not target_raw:
-        return Response(content="Invalid target URL", status_code=400)
-
-    parts = urlsplit(target_raw)
-    if not parts.scheme or not parts.netloc:
-        return Response(content="Invalid target URL", status_code=400)
-
-    # Формируем URL discovery: <scheme>://<host>/.well-known/<prefix>[?original_query]
-    discovery_url = f"{parts.scheme}://{parts.netloc}/.well-known/{prefix}"
-    incoming_query = request.url.query
-    if incoming_query:
-        discovery_url = f"{discovery_url}?{incoming_query}"
-    print(discovery_url)
-    return await _proxy_with_aiohttp(request, discovery_url, origin)

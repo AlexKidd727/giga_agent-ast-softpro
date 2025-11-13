@@ -9,8 +9,11 @@ interface SpinnerProps {
 const Spinner: React.FC<SpinnerProps> = ({ size = "8px", color = "#fff" }) => {
   const numeric = parseInt(size as string, 10) || 12;
   return (
-    <span className="inline-block" style={{ width: size, height: size, color }}>
-      <Loader size={numeric} className="animate-spin" />
+    <span
+      className="flex items-center ml-1"
+      style={{ width: size, height: size, color }}
+    >
+      <Loader size={numeric} className="animate-spin text-foreground" />
     </span>
   );
 };

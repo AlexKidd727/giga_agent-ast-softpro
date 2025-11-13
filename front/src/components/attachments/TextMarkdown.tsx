@@ -4,11 +4,11 @@ import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/cjs/styles/prism";
 import remarkGfm from "remark-gfm";
 import remarkMath from "remark-math";
-import rehypeKatex from "rehype-katex";
 import rehypeRaw from "rehype-raw";
 import Markdown from "react-markdown";
 import MessageAttachment from "./MessageAttachment.tsx";
 import { cn } from "@/lib/utils.ts";
+import rehypeKatex from "@/lib/rehype_katex.ts";
 
 // Оборачивает ссылки/картинки вида ](/files/...) и ](attachment:/files/...) с пробелами в <...>,
 // чтобы CommonMark корректно парсил URI без URL-энкода.
@@ -68,6 +68,7 @@ const markdownComponents = {
       {...props}
     />
   ),
+
   h2: ({ className, ...props }: { className?: string }) => (
     <h2
       className={cn(
@@ -111,8 +112,8 @@ const markdownComponents = {
     />
   ),
   p: ({ className, ...props }: { className?: string }) => (
-    <p
-      className={cn("mt-5 mb-5 leading-7 first:mt-0 last:mb-0", className)}
+    <div
+      className={cn("leading-7 first:mt-0 last:mb-0", className)}
       {...props}
     />
   ),
@@ -130,7 +131,7 @@ const markdownComponents = {
   ),
   ol: ({ className, ...props }: { className?: string }) => (
     <ol
-      className={cn("my-5 ml-6 list-decimal [&>li]:mt-2", className)}
+      className={cn("my-4 ml-6 list-decimal [&>li]:mt-2", className)}
       {...props}
     />
   ),
@@ -330,7 +331,7 @@ interface TextMarkdownProps {
 const TextMarkdown: React.FC<TextMarkdownProps> = (props) => {
   return (
     <Markdown
-      remarkPlugins={[remarkGfm, remarkMath]}
+      remarkPlugins={[remarkGfm, [remarkMath, { singleDollarTextMath: true }]]}
       rehypePlugins={[[rehypeKatex, { output: "mathml" }], rehypeRaw]}
       urlTransform={(uri) => uri}
       components={markdownComponents}

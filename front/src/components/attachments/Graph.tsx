@@ -34,9 +34,9 @@ const SelectableContainer = styled.div`
   position: relative;
 `;
 
-const SelectorButton = styled.button<{ $selected: boolean; isGraph: boolean }>`
+const SelectorButton = styled.button<{ $selected: boolean; $isGraph: boolean }>`
   position: absolute;
-  top: ${({ isGraph }) => (isGraph ? "40px" : "8px")};
+  top: ${({ $isGraph }) => ($isGraph ? "40px" : "8px")};
   right: 8px;
   width: 24px;
   height: 24px;
@@ -126,7 +126,7 @@ const Graph: React.FC<GraphProps> = ({ id, alt, data }) => {
     <SelectableContainer>
       <SelectorButton
         aria-label="select-attachment"
-        isGraph={true}
+        $isGraph={true}
         $selected={selected}
         onClick={(e) => {
           e.stopPropagation();

@@ -11,6 +11,7 @@ import { GraphState } from "./interfaces.ts";
 import { RagProvider } from "@/components/rag/providers/RAG.tsx";
 import RAGInterface from "@/components/rag";
 import { OAuthCallback } from "@/components/mcp/oauth-callback.tsx";
+import { UserInfoProvider } from "@/components/providers/user-info.tsx";
 
 const InnerApp: React.FC = () => {
   const { demoItemsLoaded } = useDemoItems();
@@ -82,24 +83,19 @@ const InnerApp: React.FC = () => {
 
 const App: React.FC = () => {
   return (
-    // <McpProvider
-    //   urls={[
-    //     `${window.location.protocol}//${window.location.host}/mcp/@https://mcp-dev.bitrix24.tech/mcp`,
-    //     `${window.location.protocol}//${window.location.host}/mcp/@https://mcp.tavily.com/mcp/?tavilyApiKey=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`,
-    //   ]}
-    // >
     <DemoItemsProvider>
       <SettingsProvider>
         <RagProvider>
-          <div className="flex h-auto w-full mx-auto print:h-auto">
-            <BrowserRouter>
-              <InnerApp />
-            </BrowserRouter>
-          </div>
+          <UserInfoProvider>
+            <div className="flex h-auto w-full mx-auto print:h-auto">
+              <BrowserRouter>
+                <InnerApp />
+              </BrowserRouter>
+            </div>
+          </UserInfoProvider>
         </RagProvider>
       </SettingsProvider>
     </DemoItemsProvider>
-    // </McpProvider>
   );
 };
 

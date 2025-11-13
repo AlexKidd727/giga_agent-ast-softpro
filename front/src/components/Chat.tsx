@@ -8,8 +8,6 @@ import { useNavigate, useParams } from "react-router-dom";
 import { uiMessageReducer } from "@langchain/langgraph-sdk/react-ui";
 import { SelectedAttachmentsProvider } from "../hooks/SelectedAttachmentsContext.tsx";
 import type { UseStream } from "@langchain/langgraph-sdk/react";
-import McpServerModal from "@/components/mcp/mcp-modal.tsx";
-import type { Tool } from "mcp-use/react";
 
 interface ChatProps {
   onThreadIdChange?: (threadId: string) => void;
@@ -17,8 +15,6 @@ interface ChatProps {
 }
 
 const Chat: React.FC<ChatProps> = ({ onThreadIdChange, onThreadReady }) => {
-  const [isMcpModalOpen, setIsMcpModalOpen] = useState(false);
-  const [mcpTools, setMcpTools] = useState<Tool[]>([]);
   const navigate = useNavigate();
   const { threadId } = useParams<{ threadId?: string }>();
   const thread = useStream<GraphState>({
@@ -27,7 +23,6 @@ const Chat: React.FC<ChatProps> = ({ onThreadIdChange, onThreadReady }) => {
     messagesKey: "messages",
     reconnectOnMount: true,
     threadId: threadId === undefined ? null : threadId,
-    fetchStateHistory: true,
     onThreadId: (threadId: string) => {
       onThreadIdChange?.(threadId);
       navigate(`/threads/${threadId}`);
@@ -40,21 +35,6 @@ const Chat: React.FC<ChatProps> = ({ onThreadIdChange, onThreadReady }) => {
       });
     },
   });
-
-  const setMcpToolsCallback = useCallback(
-    (tools: Tool[]) => {
-      setMcpTools(tools);
-    },
-    [setMcpTools],
-  );
-
-  const openMcpModal = useCallback(() => {
-    setIsMcpModalOpen(true);
-  }, [setIsMcpModalOpen]);
-
-  const closeMcpModal = useCallback(() => {
-    setIsMcpModalOpen(false);
-  }, [setIsMcpModalOpen]);
 
   useEffect(() => {
     onThreadReady?.(thread as unknown as UseStream<GraphState>);
@@ -73,18 +53,9 @@ const Chat: React.FC<ChatProps> = ({ onThreadIdChange, onThreadReady }) => {
       <div className="w-full flex p-5 max-[900px]:p-0 max-[900px]:mt-[75px]">
         <div className="flex max-w-[900px] mx-auto h-full flex-col flex-1 bg-card text-card-foreground backdrop-blur-2xl rounded-lg overflow-hidden shadow-lg dark:shadow-2xl max-[900px]:shadow-none print:overflow-visible print:shadow-none">
           <MessageList messages={stableMessages ?? []} thread={thread} />
-          <InputArea
-            thread={thread}
-            mcpTools={mcpTools}
-            onOpenSettings={openMcpModal}
-          />
+          <InputArea thread={thread} />
         </div>
       </div>
-      <McpServerModal
-        isOpen={isMcpModalOpen}
-        onClose={closeMcpModal}
-        onToolsUpdate={setMcpToolsCallback}
-      />
     </SelectedAttachmentsProvider>
   );
 };

@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import MessageList from "../MessageList";
 import InputArea from "../InputArea";
 import { useStream } from "@langchain/langgraph-sdk/react";
@@ -12,6 +12,9 @@ import DemoToolBar from "./DemoToolBar.tsx";
 import { uiMessageReducer } from "@langchain/langgraph-sdk/react-ui";
 import { SelectedAttachmentsProvider } from "@/hooks/SelectedAttachmentsContext.tsx";
 import type { UseStream } from "@langchain/langgraph-sdk/react";
+import { useRagContext } from "@/components/rag/providers/RAG.tsx";
+import { useSettings } from "@/components/Settings.tsx";
+import { useUserInfo } from "@/components/providers/user-info.tsx";
 
 interface DemoChatProps {
   onContinue: () => void;
@@ -35,11 +38,32 @@ const DemoChat = ({
   const [firstSent, setFirstSend] = useState(false);
   const [isFinished, setIsFinished] = useState(false);
 
+  const { collections, activeCollections } = useRagContext();
+  const { settings } = useSettings();
+  const { mcpTools, openMcpModal, openContextModal, openCollectionsModal } =
+    useUserInfo();
+
+  const enabledCollections = useMemo(() => {
+    const active = Object.keys(activeCollections).filter(
+      (key) => activeCollections[key],
+    );
+    return collections.filter((collection) => active.includes(collection.uuid));
+  }, [activeCollections, collections]);
+
+  const mcpToolsPayload = useMemo(
+    () =>
+      mcpTools.map((tool) => ({
+        name: tool.name,
+        description: tool.description,
+        inputSchema: tool.inputSchema,
+      })),
+    [mcpTools],
+  );
+
   const thread = useStream<GraphState>({
     apiUrl: `${window.location.protocol}//${window.location.host}/graph`,
     assistantId: "chat",
     messagesKey: "messages",
-    fetchStateHistory: true,
     onThreadId: (threadId: string) => {
       onThreadIdChange?.(threadId);
     },
@@ -116,7 +140,13 @@ const DemoChat = ({
                   } as HumanMessage;
 
                   thread.submit(
-                    { messages: [newMessage] },
+                    {
+                      messages: [newMessage],
+                      collections: enabledCollections,
+                      mcp_tools: mcpToolsPayload,
+                      secrets: settings.contextSecrets,
+                      instructions: settings.contextInstructions,
+                    },
                     {
                       optimisticValues(prev) {
                         const prevMessages = prev.messages ?? [];
