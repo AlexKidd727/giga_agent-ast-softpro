@@ -840,6 +840,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                 />
                 <Button
                   type="button"
+                  variant={"default2"}
                   onClick={handleAddServer}
                   disabled={!newServerUrl.trim()}
                 >
