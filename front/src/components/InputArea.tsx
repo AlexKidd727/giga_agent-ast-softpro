@@ -322,7 +322,7 @@ const InputArea: React.FC<InputAreaProps> = ({ thread }) => {
           placeholder={
             thread?.interrupt
               ? "Принять / Отменить с комментарием…"
-              : "Спросите что-нибудь…"
+              : "Введите вашу задачу…"
           }
           ref={textRef}
           value={message}

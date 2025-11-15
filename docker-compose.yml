@@ -125,8 +125,13 @@ services:
             - ./files/:/files/:ro
             - ./data/jupyter:/home/jupyter/:ro
             - ./data/runs:/runs/:ro
+            - ./front/nginx.conf:/etc/nginx/nginx.conf:ro
         ports:
             - "8502:80"
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
         depends_on:
             langgraph-api:
                 condition: service_started

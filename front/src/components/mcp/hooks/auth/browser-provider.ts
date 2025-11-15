@@ -6,8 +6,7 @@ import type {
 } from "@modelcontextprotocol/sdk/shared/auth.js";
 import type { OAuthClientProvider } from "@modelcontextprotocol/sdk/client/auth.js";
 import { sanitizeUrl } from "strict-url-sanitise";
-// Assuming StoredState is defined in ./types.js and includes fields for provider options
-import type { StoredState } from "mcp-use"; // Adjust path if necessary
+import type { StoredState } from "@/components/mcp/hooks/auth/types.ts";
 
 /**
  * Browser-compatible OAuth client provider for MCP using localStorage.

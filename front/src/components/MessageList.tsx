@@ -7,6 +7,7 @@ import React, {
 import Message from "./Message.tsx";
 import ToolMessage, { ToolExecuting } from "./ToolMessage.tsx";
 import { Message as Message_ } from "@langchain/langgraph-sdk";
+import WellcomeMessage from "./wellcome-message.tsx";
 import ThinkingIndicator from "./ThinkingIndicator.tsx";
 import type { UseStream } from "@langchain/langgraph-sdk/react";
 import { GraphState } from "../interfaces.ts";
@@ -16,10 +17,11 @@ interface MessageListProps {
   messages: Message_[];
   thread?: UseStream<GraphState>;
   children?: React.ReactNode;
+  notShowWelcomeMessage?: boolean;
 }
 
 const MessageList = forwardRef<any, MessageListProps>(
-  ({ messages, thread, children }, ref) => {
+  ({ messages, thread, children, notShowWelcomeMessage }, ref) => {
     const containerRef = useRef<HTMLDivElement>(null);
     const autoScrollEnabledRef = useRef<boolean>(true);
     const bottomSentinelRef = useRef<HTMLDivElement>(null);
@@ -124,6 +126,9 @@ const MessageList = forwardRef<any, MessageListProps>(
         style={{ overflowAnchor: "none" }}
       >
         {children}
+        {messages.length === 0 && !notShowWelcomeMessage ? (
+          <WellcomeMessage />
+        ) : null}
         {messages.map((message, idx) =>
           message.type === "tool" ? (
             <ToolMessage

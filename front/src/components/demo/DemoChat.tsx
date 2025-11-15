@@ -112,6 +112,7 @@ const DemoChat = ({
             messages={stableMessages ?? []}
             thread={thread}
             ref={listRef}
+            notShowWelcomeMessage={true}
           >
             {!firstSent && (
               <Message

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useMemo } from "react";
 import { Info, Plus, Trash2, Power, PowerOff, X } from "lucide-react";
 import { toast } from "sonner";
-import { type Tool } from "mcp-use/react";
+import { type Tool } from "@modelcontextprotocol/sdk/types.js";
 import {
   Dialog,
   DialogContent,
@@ -13,7 +13,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { useMcp } from "mcp-use/react";
 import {
   Popover,
   PopoverContent,
@@ -27,6 +26,7 @@ import {
 } from "@/components/ui/tooltip";
 import { detectGigaChatWrongSchema } from "@/components/mcp/utils/detectGigaChatWrongSchema";
 import { MCP_PROXY_URL } from "@/components/rag/utils.ts";
+import { useMcp } from "@/components/mcp/hooks/useMcp.ts";
 
 interface McpServer {
   id: string;
@@ -188,30 +188,6 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
     }
   }, []);
 
-  // Ретрансляция OAuth-сообщений из BroadcastChannel в window.postMessage для use-mcp
-  useEffect(() => {
-    if (!isOpen) return;
-    let channel: BroadcastChannel | null = null;
-    try {
-      channel = new BroadcastChannel("mcp_auth");
-      channel.onmessage = (ev: MessageEvent) => {
-        const data = (ev as MessageEvent).data;
-        if (data?.type === "mcp_auth_callback") {
-          window.postMessage(data, window.location.origin);
-        }
-      };
-    } catch (_e) {
-      // Если BroadcastChannel недоступен — ничего не делаем здесь
-    }
-    return () => {
-      try {
-        if (channel) channel.close();
-      } catch {
-        // ignore
-      }
-    };
-  }, [isOpen]);
-
   const [servers, setServers] = useState<McpServer[]>(() => {
     const stored = localStorage.getItem("mcpServers");
     return stored ? JSON.parse(stored) : [];
@@ -250,24 +226,22 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
   ) => {
     dismissConnectionToast(serverId);
 
-    let newToastId;
     switch (variant) {
       case "loading": {
-        newToastId = toast.loading(message);
+        if (!(serverId in connectionToastsRef.current)) {
+          connectionToastsRef.current[serverId] = toast.loading(message);
+        }
         break;
       }
       case "success":
-        newToastId = toast.success(message);
+        toast.success(message);
         break;
       case "error":
-        newToastId = toast.error(message);
+        toast.error(message);
         break;
       case "warning":
-        newToastId = toast.warning(message);
+        toast.warning(message);
         break;
-    }
-    if (newToastId !== undefined) {
-      connectionToastsRef.current[serverId] = newToastId;
     }
   };
 
@@ -432,6 +406,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
 
   // Handle toggling server enabled state
   const handleToggleServer = (serverId: string) => {
+    dismissConnectionToast(serverId);
     setServers((prev) =>
       prev.map((server) =>
         server.id === serverId
@@ -446,7 +421,6 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
       connectionData[serverId].disconnect();
     }
     if (server?.enabled) {
-      dismissConnectionToast(serverId);
       successfulConnectionsRef.current.delete(serverId);
     }
   };
@@ -539,7 +513,7 @@ const McpServerModal: React.FC<McpServerModalProps> = ({
                 : false;
             return {
               ...t,
-              enabled: isWrong ? false : true,
+              enabled: !isWrong,
               disabled: isWrong,
             };
           });
