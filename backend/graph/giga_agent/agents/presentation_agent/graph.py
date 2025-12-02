@@ -1,0 +1,145 @@
+import asyncio
+import json
+import os
+import uuid
+from typing import Annotated
+
+from langchain_core.tools import tool
+from langgraph.constants import START, END
+from langgraph.graph import StateGraph
+from langgraph.graph.ui import push_ui_message
+from langgraph.prebuilt import InjectedState
+from langgraph_sdk import get_client
+
+from giga_agent.agents.presentation_agent.config import PresentationState, ConfigSchema
+from giga_agent.agents.presentation_agent.nodes.images import image_node
+from giga_agent.agents.presentation_agent.nodes.plan import plan_node
+from giga_agent.agents.presentation_agent.nodes.slides import slides_node
+from giga_agent.utils.env import load_project_env
+from giga_agent.utils.messages import filter_tool_calls
+
+workflow = StateGraph(PresentationState, ConfigSchema)
+
+workflow.add_node("plan_node", plan_node)
+workflow.add_node("image", image_node)
+workflow.add_node("slides_node", slides_node)
+
+workflow.add_edge(START, "plan_node")
+workflow.add_edge("plan_node", "image")
+workflow.add_edge("image", "slides_node")
+workflow.add_edge("slides_node", END)
+
+graph = workflow.compile()
+
+
+@tool(parse_docstring=True)
+async def generate_presentation(
+    presentation_task: str,
+    state: Annotated[dict, InjectedState] = None,
+):
+    """
+    Этот инструмент создает презентации. В task передай задачу для создания презентации.
+    Если ты хочешь передать график/изображение в task, то передавай их в формате `attachment:<путь до вложения>`
+
+    Args:
+        presentation_task: Описание презентации
+    """
+    # Проверяем, что state не None и содержит messages
+    if state is None:
+        return {
+            "message": "Ошибка: state равен None. Невозможно создать презентацию.",
+            "giga_attachments": [],
+        }
+    if "messages" not in state or not state["messages"]:
+        return {
+            "message": "Ошибка: state не содержит messages или messages пустой. Невозможно создать презентацию.",
+            "giga_attachments": [],
+        }
+    
+    client = get_client(url=os.getenv("LANGGRAPH_API_URL", "http://0.0.0.0:2024"))
+    thread = await client.threads.create()
+    # Проверяем, что thread не None и содержит thread_id
+    if thread is None or "thread_id" not in thread:
+        return {
+            "message": "Ошибка: не удалось создать thread или thread не содержит thread_id.",
+            "giga_attachments": [],
+        }
+    thread_id = thread["thread_id"]
+    push_ui_message(
+        "agent_execution",
+        {
+            "agent": "generate_presentation",
+            "node": "__start__",
+        },
+    )
+    # Проверяем, что последнее сообщение существует
+    if not state["messages"] or state["messages"][-1] is None:
+        return {
+            "message": "Ошибка: последнее сообщение в state отсутствует или равно None.",
+            "giga_attachments": [],
+        }
+    last_mes = filter_tool_calls(state["messages"][-1])
+    async for chunk in client.runs.stream(
+        thread_id=thread_id,
+        assistant_id="presentation",
+        input={
+            "messages": state["messages"][:-1] + [last_mes],
+            "task": presentation_task,
+        },
+        stream_mode=["values", "updates"],
+        on_disconnect="cancel",
+    ):
+        if chunk.event == "values":
+            state = chunk.data
+        elif chunk.event == "updates":
+            # Проверяем, что chunk.data не None и не пустой
+            if chunk.data is not None and len(chunk.data) > 0:
+                node_name = list(chunk.data.keys())[0] if chunk.data else "__unknown__"
+                push_ui_message(
+                    "agent_execution",
+                    {
+                        "agent": "generate_presentation",
+                        "node": node_name,
+                    },
+                )
+    code = state.get("presentation_html")
+    # Проверяем, что presentation_html не None и содержит необходимые данные
+    if code is None:
+        error_msg = "Ошибка: не удалось сгенерировать презентацию. presentation_html равен None."
+        return {
+            "message": error_msg,
+            "giga_attachments": [],
+        }
+    if not isinstance(code, dict) or "path" not in code:
+        error_msg = f"Ошибка: неверный формат presentation_html. Ожидался словарь с ключом 'path', получено: {type(code)}"
+        return {
+            "message": error_msg,
+            "giga_attachments": [],
+        }
+    return {
+        "message": f'В результате выполнения была сгенерирована HTML страница {code["path"]}. Покажи её пользователю через "![alt-описание](attachment:{code["path"]})" и напиши куда двигаться пользователю дальше',
+        "giga_attachments": [code],
+    }
+
+
+async def main():
+    load_project_env()
+    messages = json.load(open("data/messages.json", "r"))
+    async for event in graph.astream(
+        {"messages": messages},
+        config={
+            "configurable": {
+                "thread_id": str(uuid.uuid4()),
+                "print_messages": True,
+                "save_files": True,
+            }
+        },
+    ):
+        pass
+    key = list(event.keys())[0]
+    with open("page.html", "w") as f:
+        f.write(event[key]["presentation_html"])
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
