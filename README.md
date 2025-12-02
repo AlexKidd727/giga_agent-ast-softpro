@@ -7,6 +7,27 @@
   <img alt="Shows a black and red Giga Agent Logo in light color mode and a white and red in dark color mode." src="docs/images/giga-agent_dark_logo.png"  width="full">
 </picture>
 
+<h1 align="center">GigaAgent: универсальный AI-агент (расширенная версия от AST-SoftPro.ru)</h1>
+
+<picture>
+  <source media="(prefers-color-scheme: light)" srcset="docs/images/giga-agent_light_logo.png">
+  <source media="(prefers-color-scheme: dark)" srcset="docs/images/giga-agent_dark_logo.png">
+  <img alt="Shows a black and red Giga Agent Logo in light color mode and a white and red in dark color mode." src="docs/images/giga-agent_dark_logo.png"  width="full">
+</picture>
+
+Форк GigaAgent от ast-softpro.ru (Студенников Алексей Олегович)
+
+Новые возможности:
+> работа с облачным API Deepseek V3.2
+> добавлен агент T-Инвестиции (tinkoff-agent) - портфель пользователя, графики, операции, выставление ордеров
+> добавлен агент Google Calendar (calendar-agent) - просмотр событий из календаря, добавление, правка, удаление
+> добавлен агент Email (email-agent) - получение писем, отправка в карзину, поиск по словам и адресам
+> добавлен инструмент salute_day для простого озвучивания текста
+
+В ПРОЦЕССЕ ТЕСТИРОВАНИЯ, работоспособность не гарантирована:
+> добавлен агент Кодер (coder_agent) - для генерации прототипа проекта на выбранном языке и с указанными технологиями
+> добавлен агент pc_agent - для управления ресурсами ПК, на котором запущен (временно отключен)
+
   <!-- Keep these links. Translations will automatically update with the README. -->
 [ [Русский](https://www.zdoc.app/ru/ai-forever/giga_agent) | 
 [中文](https://www.zdoc.app/zh/ai-forever/giga_agent) | 
