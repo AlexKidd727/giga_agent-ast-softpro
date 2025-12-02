@@ -1,12 +1,3 @@
-
-<h1 align="center">GigaAgent: универсальный AI-агент</h1>
-
-<picture>
-  <source media="(prefers-color-scheme: light)" srcset="docs/images/giga-agent_light_logo.png">
-  <source media="(prefers-color-scheme: dark)" srcset="docs/images/giga-agent_dark_logo.png">
-  <img alt="Shows a black and red Giga Agent Logo in light color mode and a white and red in dark color mode." src="docs/images/giga-agent_dark_logo.png"  width="full">
-</picture>
-
 <h1 align="center">GigaAgent: универсальный AI-агент (расширенная версия от AST-SoftPro.ru)</h1>
 
 <picture>
