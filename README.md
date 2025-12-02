@@ -1,5 +1,4 @@
-
-<h1 align="center">GigaAgent: универсальный AI-агент (расширенная версия от AST-SoftPro.ru)</h1>
+<h1 align="center">GigaAgent: универсальный AI-агент (расширенная версия от [ast-softpro.ru](https://ast-softpro.ru))</h1>
 
 <picture>
   <source media="(prefers-color-scheme: light)" srcset="docs/images/giga-agent_light_logo.png">
@@ -7,13 +6,13 @@
   <img alt="Shows a black and red Giga Agent Logo in light color mode and a white and red in dark color mode." src="docs/images/giga-agent_dark_logo.png"  width="full">
 </picture>
 
-Форк GigaAgent от ast-softpro.ru (Студенников Алексей Олегович)
+Форк GigaAgent от [ast-softpro.ru](https://ast-softpro.ru) (Студенников Алексей Олегович)
 
 Новые возможности:
 > работа с облачным API Deepseek V3.2
 > добавлен агент T-Инвестиции (tinkoff-agent) - портфель пользователя, графики, операции, выставление ордеров
 > добавлен агент Google Calendar (calendar-agent) - просмотр событий из календаря, добавление, правка, удаление
-> добавлен агент Email (email-agent) - получение писем, отправка в карзину, поиск по словам и адресам
+> добавлен агент Email (email-agent) - получение писем, отправка в корзину, поиск по словам и адресам
 > добавлен инструмент salute_day для простого озвучивания текста
 
 В ПРОЦЕССЕ ТЕСТИРОВАНИЯ, работоспособность не гарантирована:
