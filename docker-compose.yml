@@ -1,0 +1,264 @@
+volumes:
+    aegra-data:
+        driver: local
+services:
+    langgraph-redis:
+        image: redis:6
+        healthcheck:
+            test: redis-cli ping
+            interval: 5s
+            timeout: 1s
+            retries: 5
+    aegra-postgres:
+        image: postgres:16
+        environment:
+            POSTGRES_DB: postgres
+            POSTGRES_USER: postgres
+            POSTGRES_PASSWORD: postgres
+        volumes:
+            - aegra-data:/var/lib/postgresql/data
+        healthcheck:
+            test: pg_isready -U postgres
+            start_period: 10s
+            timeout: 1s
+            retries: 5
+            interval: 5s
+    db-migrations:
+        build:
+            context: ./backend/graph
+            dockerfile: migrations/Dockerfile
+        image: giga_agent_migrations:latest
+        pull_policy: never
+        depends_on:
+            aegra-postgres:
+                condition: service_healthy
+        environment:
+            DATABASE_URL: postgresql://postgres:postgres@aegra-postgres:5432/postgres
+        restart: "no"  # Не перезапускаем контейнер миграций
+    langgraph-api:
+        build:
+            context: ./backend/graph
+        depends_on:
+            langgraph-redis:
+                condition: service_healthy
+            aegra-postgres:
+                condition: service_healthy
+            db-migrations:
+                condition: service_completed_successfully
+        image: giga_agent_aegra
+        pull_policy: never
+        env_file:
+            - .docker.env
+        environment:
+            REDIS_URI: redis://langgraph-redis:6379
+            DATABASE_URL: postgresql+asyncpg://postgres:postgres@aegra-postgres:5432/postgres
+            AUTH_TYPE: noop
+            JUPYTER_CLIENT_API: http://repl:9090
+            JUPYTER_UPLOAD_API: http://upload_server:9092
+            TOOL_CLIENT_API: http://tool_server:9091
+            # Внешние сервисы (запускаются отдельно из d:\Python\mcp\)
+            STT_SERVICE_API: ${STT_SERVICE_API:-http://host.docker.internal:9093}
+            EMBEDDINGS_SERVICE_API: ${EMBEDDINGS_SERVICE_API:-http://host.docker.internal:9094}
+            BROWSER_SERVICE_HOST: browser-service
+            BROWSER_SERVICE_PORT: "7070"
+            # ВАЖНО: coder_generate сохраняет проект и ZIP в FILES_DIR,
+            # а фронтенд/ upload_server раздают это по /files/.
+            FILES_DIR: /files
+        volumes:
+            # Примечание:
+            # Монтируем исходники агента, чтобы изменения в `backend/graph/giga_agent`
+            # применялись без пересборки образа. Иначе langgraph-api будет использовать
+            # версию из образа (/app/giga_agent), что приводит к рассинхрону кода.
+            - ./backend/graph/giga_agent:/app/giga_agent:rw
+            - ./credentials:/app/credentials:ro
+            - ./files/:/files/:rw
+            - ./vector_store:/vector_store:rw
+        command: >
+            sh -c "
+              echo 'Database migrations already completed by db-migrations service' &&
+              echo 'Starting Aegra server...' &&
+              uv run uvicorn src.agent_server.main:app --host 0.0.0.0 --port 8000
+            "
+    repl:
+        working_dir: /
+        restart: always
+        build:
+            context: ./backend/repl
+        image: repl:latest
+        pull_policy: never
+        user: root
+        command: sh -c "chown -R jupyter:jupyter /home/jupyter /kernel_states /runs && exec su -s /bin/bash -c 'uv run uvicorn app.main:app --host 0.0.0.0 --port 9090' jupyter"
+        environment:
+            PLOTLY_RENDERER: plotly_mimetype
+            MAX_KERNEL_LIVE: 300
+            FILES_DIR: /files
+            STATE_DIR: /kernel_states
+        volumes:
+            - ./kernel_states/:/kernel_states/
+            - ./files/:/files/:ro
+            - ./data/jupyter/:/home/jupyter/
+            - ./data/runs/:/runs/
+    upload_server:
+        working_dir: /
+        restart: always
+        image: repl:latest
+        user: root
+        pull_policy: never
+        depends_on:
+            - repl
+        command: uv run uvicorn app.upload_server:app --host 0.0.0.0 --port 9092
+        env_file:
+            - .docker.env
+        environment:
+            PLOTLY_RENDERER: plotly_mimetype
+            MAX_KERNEL_LIVE: 300
+            FILES_DIR: /files
+            STATE_DIR: /kernel_states
+            GIGA_AGENT_API: http://giga_agent_server:8822
+        volumes:
+            - ./files/:/files/:rw
+            - ./data/runs:/runs/:rw
+    tool_server:
+        working_dir: /app
+        restart: always
+        image: giga_agent_aegra
+        pull_policy: never
+        command: uv run uvicorn giga_agent.tool_server.tool_server:app --host 0.0.0.0 --port 9091
+        depends_on:
+            langgraph-redis:
+                condition: service_healthy
+            aegra-postgres:
+                condition: service_healthy
+            db-migrations:
+                condition: service_completed_successfully
+        env_file:
+            - .docker.env
+        entrypoint: []
+        environment:
+            REDIS_URI: redis://langgraph-redis:6379
+            DATABASE_URL: postgresql+asyncpg://postgres:postgres@aegra-postgres:5432/postgres
+            JUPYTER_CLIENT_API: http://repl:9090
+            TOOL_CLIENT_API: http://tool_server:9091
+            JUPYTER_UPLOAD_API: http://upload_server:9092
+            # Внешние сервисы (запускаются отдельно из d:\Python\mcp\)
+            STT_SERVICE_API: ${STT_SERVICE_API:-http://host.docker.internal:9093}
+            EMBEDDINGS_SERVICE_API: ${EMBEDDINGS_SERVICE_API:-http://host.docker.internal:9094}
+            BROWSER_SERVICE_HOST: browser-service
+            BROWSER_SERVICE_PORT: "7070"
+        volumes:
+            # Примечание: держим код в синхроне с langgraph-api (общий каталог исходников)
+            - ./backend/graph/giga_agent:/app/giga_agent:rw
+            - ./credentials:/app/credentials:ro
+    # ПРИМЕЧАНИЕ: stt-service и embeddings-service вынесены в отдельный проект d:\Python\mcp\
+    # Для подключения используйте внешние адреса:
+    # - STT_SERVICE_API: http://host.docker.internal:9093
+    # - EMBEDDINGS_SERVICE_API: http://host.docker.internal:9094
+    # Запустите их отдельно из d:\Python\mcp\ перед использованием
+    giga_agent_server:
+        working_dir: /app
+        restart: always
+        image: giga_agent_aegra
+        pull_policy: never
+        command: uv run uvicorn giga_agent.tasks_app:app --host 0.0.0.0 --port 8822
+        depends_on:
+            langgraph-redis:
+                condition: service_healthy
+            aegra-postgres:
+                condition: service_healthy
+            db-migrations:
+                condition: service_completed_successfully
+        env_file:
+            - .docker.env
+        entrypoint: [ ]
+        environment:
+            REDIS_URI: redis://langgraph-redis:6379
+            DATABASE_URL: postgresql+asyncpg://postgres:postgres@aegra-postgres:5432/postgres
+            JUPYTER_CLIENT_API: http://repl:9090
+            LANGGRAPH_API_URL: http://langgraph-api:8000
+            # Внешний сервис (запускается отдельно из d:\Python\mcp\)
+            EMBEDDINGS_SERVICE_API: ${EMBEDDINGS_SERVICE_API:-http://host.docker.internal:9094}
+            BROWSER_SERVICE_HOST: browser-service
+            BROWSER_SERVICE_PORT: "7070"
+        volumes:
+            # Примечание: держим код в синхроне с langgraph-api (общий каталог исходников)
+            - ./backend/graph/giga_agent:/app/giga_agent:rw
+            - ./credentials:/app/credentials:ro
+    frontend:
+        build:
+            context: ./front
+            dockerfile: Dockerfile
+            args:
+                VITE_LANGCONNECT_API_URL: ${LANGCONNECT_API_URL}
+                VITE_LANGCONNECT_API_SECRET_TOKEN: ${LANGCONNECT_API_SECRET_TOKEN}
+                VITE_MCP_PROXY_URL: ${MCP_PROXY_URL}
+                VITE_STT_SERVICE_URL: ${STT_SERVICE_URL:-/stt}
+        env_file:
+            - .docker.env
+        volumes:
+            - ./files/:/files/:ro
+            - ./data/jupyter:/home/jupyter/:ro
+            - ./data/runs:/runs/:ro
+            - ./front/nginx.conf:/etc/nginx/nginx.conf:ro
+            # ВАЖНО: main server-конфиг с proxy /files/ хранится в nginx.main.conf
+            # и должен попадать в /etc/nginx/conf.d/default.conf, иначе правки не применяются
+            - ./front/nginx.main.conf:/etc/nginx/conf.d/default.conf:ro
+        ports:
+            - "8502:80"
+        ulimits:
+            nofile:
+                soft: 65536
+                hard: 65536
+        depends_on:
+            langgraph-api:
+                condition: service_started
+            repl:
+                condition: service_started
+            tool_server:
+                condition: service_started
+            # stt-service и embeddings-service теперь внешние (d:\Python\mcp\)
+            browser-service:
+                condition: service_started
+    browser-service:
+        build:
+            context: ./backend/browser-service
+        image: browser-service:latest
+        pull_policy: never
+        ports:
+            - "7070:7070"  # WebSocket
+            - "7071:7071"  # HTTP API для работы с куками
+        environment:
+            BROWSER_SERVICE_HOST: "0.0.0.0"
+            BROWSER_SERVICE_PORT: "7070"
+            BROWSER_HEADLESS: "true"  # В Docker обязательно headless режим (нет X server)
+        # Для работы с GUI браузером в Docker нужны специальные настройки
+        # В production лучше использовать headless режим
+        # Для ручной авторизации можно использовать X11 forwarding или VNC
+        volumes:
+            - /tmp:/tmp
+        # Для работы с GUI в Docker (опционально)
+        # network_mode: "host"  # Раскомментируйте для доступа к X11
+        restart: always
+    # ПРИМЕЧАНИЕ: deployhub-mcp вынесен в отдельный проект d:\Python\mcp\
+    # Для подключения используйте внешний адрес:
+    # - deployhub MCP: http://host.docker.internal:9095/mcp
+    # Запустите его отдельно из d:\Python\mcp\ перед использованием
+    telegram-bot:
+        working_dir: /app
+        restart: always
+        image: giga_agent_aegra
+        pull_policy: never
+        depends_on:
+            langgraph-api:
+                condition: service_started
+        env_file:
+            - .docker.env
+        entrypoint: []
+        command: sh -c "uv pip install --system aiogram>=3.0.0 langgraph-sdk>=0.0.20 langchain-core>=0.3.0 && PYTHONPATH=/app python /app/telegram-bot/main.py"
+        environment:
+            # Используем переменные из .docker.env
+            # TELEGRAM_BOT_TOKEN и TELEGRAM_ADMIN_USER_ID загружаются из env_file
+            LANGGRAPH_API_URL: http://langgraph-api:8000
+            REDIS_URI: redis://langgraph-redis:6379
+            DATABASE_URL: postgresql+asyncpg://postgres:postgres@aegra-postgres:5432/postgres
+        volumes:
+            - ./backend/telegram-bot:/app/telegram-bot:ro

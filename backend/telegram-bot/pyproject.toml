@@ -1,0 +1,14 @@
+[project]
+name = "telegram-bot"
+version = "0.1.0"
+description = "Telegram bot for Giga Agent system access"
+requires-python = ">=3.10"
+dependencies = [
+    "aiogram>=3.0.0",
+    "langgraph-sdk>=0.0.20",
+    "langchain-core>=0.3.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

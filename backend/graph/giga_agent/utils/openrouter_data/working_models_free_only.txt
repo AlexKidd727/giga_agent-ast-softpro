@@ -1,0 +1,11 @@
+mistralai/devstral-2512:free
+xiaomi/mimo-v2-flash:free
+qwen/qwen3-coder:free
+kwaipilot/kat-coder-pro:free
+tngtech/deepseek-r1t-chimera:free
+google/gemma-3-27b-it:free
+meta-llama/llama-3.2-3b-instruct:free
+meta-llama/llama-3.3-70b-instruct:free
+nousresearch/hermes-3-llama-3.1-405b:free
+qwen/qwen-2.5-vl-7b-instruct:free
+google/gemma-3n-e4b-it:free

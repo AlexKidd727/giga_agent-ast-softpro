@@ -1,0 +1,63 @@
+{
+  "failed_models": {
+    "openai/gpt-oss-120b:free": {
+      "failures": 3,
+      "last_failure": "2026-01-20T21:05:26.823780",
+      "disabled_until": "2026-01-20T21:10:26.823794",
+      "errors": [
+        {
+          "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'openai/gpt-oss-120b:free is temporarily rate-limited upstream. Please retry shortly, or add your ow",
+          "timestamp": "2026-01-20T21:05:26.816996"
+        },
+        {
+          "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'openai/gpt-oss-120b:free is temporarily rate-limited upstream. Please retry shortly, or add your ow",
+          "timestamp": "2026-01-20T21:05:26.820457"
+        },
+        {
+          "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'openai/gpt-oss-120b:free is temporarily rate-limited upstream. Please retry shortly, or add your ow",
+          "timestamp": "2026-01-20T21:05:26.823792"
+        }
+      ]
+    },
+    "xiaomi/mimo-v2-flash:free": {
+      "failures": 3,
+      "last_failure": "2026-01-20T21:08:04.842473",
+      "disabled_until": "2026-01-20T21:13:04.842494",
+      "errors": [
+        {
+          "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'openai/gpt-oss-120b:free is temporarily rate-limited upstream. Please retry shortly, or add your ow",
+          "timestamp": "2026-01-20T21:08:04.826796"
+        },
+        {
+          "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'openai/gpt-oss-120b:free is temporarily rate-limited upstream. Please retry shortly, or add your ow",
+          "timestamp": "2026-01-20T21:08:04.838074"
+        },
+        {
+          "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'openai/gpt-oss-120b:free is temporarily rate-limited upstream. Please retry shortly, or add your ow",
+          "timestamp": "2026-01-20T21:08:04.842490"
+        }
+      ]
+    },
+    "qwen/qwen3-coder:free": {
+      "failures": 3,
+      "last_failure": "2026-01-20T21:10:19.901759",
+      "disabled_until": "2026-01-20T21:15:19.901780",
+      "errors": [
+        {
+          "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'qwen/qwen3-coder:free is temporarily rate-limited upstream. Please retry shortly, or add your own k",
+          "timestamp": "2026-01-20T21:10:19.894705"
+        },
+        {
+          "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'qwen/qwen3-coder:free is temporarily rate-limited upstream. Please retry shortly, or add your own k",
+          "timestamp": "2026-01-20T21:10:19.898397"
+        },
+        {
+          "error": "Error code: 429 - {'error': {'message': 'Provider returned error', 'code': 429, 'metadata': {'raw': 'qwen/qwen3-coder:free is temporarily rate-limited upstream. Please retry shortly, or add your own k",
+          "timestamp": "2026-01-20T21:10:19.901777"
+        }
+      ]
+    }
+  },
+  "current_model": null,
+  "switching_history": []
+}

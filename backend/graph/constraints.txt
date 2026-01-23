@@ -1,0 +1,10 @@
+# Локальный constraints.txt для переопределения protobuf
+# t-tech-investments требует protobuf>=4.25.1,<5.0.0
+protobuf>=4.25.1,<5.0.0
+
+# Указываем torch без CUDA зависимостей (CPU-only версия)
+# Это предотвратит загрузку nvidia-cuda-nvrtc-cu12, nvidia-cudnn-cu12 и других CUDA пакетов
+# torch будет установлен через --index-url https://download.pytorch.org/whl/cpu в Dockerfile
+# Но constraints.txt поможет uv sync понять, что нужна CPU версия
+torch>=2.0.0,<3.0.0
+

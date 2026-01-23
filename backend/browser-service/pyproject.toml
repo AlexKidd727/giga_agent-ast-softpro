@@ -1,0 +1,15 @@
+[project]
+name = "browser-service"
+version = "0.1.0"
+description = "Browser automation service with WebSocket API"
+requires-python = ">=3.10"
+dependencies = [
+    "websockets>=12.0",
+    "playwright>=1.40.0",
+    "aiohttp>=3.9.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+

@@ -1,0 +1,198 @@
+@import "tailwindcss";
+
+@plugin "tailwindcss-animate";
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  /* Палитра перенесена из d:\Python\video-hosting\static\css\style.css
+     Примечание: стили блоков кода (SyntaxHighlighter/dracula) не трогаем. */
+  --background: #f5f1eb;
+  --foreground: #2c2c2c;
+  --card: #ffffff;
+  --card-foreground: #2c2c2c;
+  --popover: #ffffff;
+  --popover-foreground: #2c2c2c;
+  --primary: #4a6fa5; /* blue */
+  --primary-foreground: #ffffff;
+  --secondary: #7ba3d0; /* light-blue */
+  --secondary-foreground: #2c2c2c;
+  --muted: #e8e4df; /* gray */
+  --muted-foreground: #5a5a5a; /* dark-gray */
+  --accent: #d4a574; /* orange */
+  --accent-foreground: #2c2c2c;
+  --destructive: oklch(0.577 0.245 27.325);
+  --destructive-foreground: oklch(0.577 0.245 27.325);
+  --border: #d4c4b0; /* light-brown */
+  --input: #ffffff;
+  --ring: #7ba3d0;
+  --chart-1: #4a6fa5;
+  --chart-2: #7ba3d0;
+  --chart-3: #8b7355; /* brown */
+  --chart-4: #d4a574;
+  --chart-5: #6b5d47; /* dark-brown */
+  --radius: 0.625rem;
+  --sidebar: #ffffff;
+  --sidebar-foreground: #2c2c2c;
+  --sidebar-primary: #4a6fa5;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #e8e4df;
+  --sidebar-accent-foreground: #2c2c2c;
+  --sidebar-border: #d4c4b0;
+  --sidebar-ring: #7ba3d0;
+  --highlight: rgba(44, 44, 44, 0.14);
+}
+
+.dark {
+  /* Тёмная тема в той же гамме (из video-hosting) */
+  --background: #2d3a4a;
+  --foreground: #e0e0e0;
+  --card: #3a4a5a;
+  --card-foreground: #e0e0e0;
+  --popover: #3a4a5a;
+  --popover-foreground: #e0e0e0;
+  --primary: #6b9dd9; /* blue (dark theme) */
+  --primary-foreground: #2c2c2c;
+  --secondary: #8fb8e8; /* light-blue (dark theme) */
+  --secondary-foreground: #2c2c2c;
+  --muted: #3a4a5a;
+  --muted-foreground: #b0b0b0;
+  --accent: #e8b88a; /* orange (dark theme) */
+  --accent-foreground: #2c2c2c;
+  --destructive: oklch(0.396 0.141 25.723);
+  --destructive-foreground: oklch(0.637 0.237 25.331);
+  --border: #8b7a6a; /* light-brown (dark theme) */
+  --input: #3a4a5a;
+  --ring: #8fb8e8;
+  --chart-1: #6b9dd9;
+  --chart-2: #8fb8e8;
+  --chart-3: #a6896b;
+  --chart-4: #e8b88a;
+  --chart-5: #7a6b5a;
+  --sidebar: #2d3a4a;
+  --sidebar-foreground: #e0e0e0;
+  --sidebar-primary: #6b9dd9;
+  --sidebar-primary-foreground: #2c2c2c;
+  --sidebar-accent: #3a4a5a;
+  --sidebar-accent-foreground: #e0e0e0;
+  --sidebar-border: #8b7a6a;
+  --sidebar-ring: #8fb8e8;
+  --shadow-s: inset 0 1px 2px oklch(1 0 0 / 0.2), 0 1px 2px oklch(0 0 0 / 0.3), 0 2px 4px oklch(0 0 0 / 0.15);
+  --highlight: rgba(224, 224, 224, 0.14);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-highlight: var(--highlight);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+
+  :root {
+    /* HSL-тройки (используются через hsl(var(--...))). Синхронизировано с палитрой video-hosting */
+    --chart-1: 213 38% 47%; /* #4a6fa5 */
+    --chart-2: 210 44% 65%; /* #7ba3d0 */
+    --chart-3: 32 24% 44%; /* #8b7355 */
+    --chart-4: 32 50% 64%; /* #d4a574 */
+    --chart-5: 32 20% 35%; /* #6b5d47 */
+    --sidebar-background: 0 0% 100%; /* #ffffff */
+    --sidebar-foreground: 0 0% 17%; /* близко к #2c2c2c */
+    --sidebar-primary: 213 38% 47%; /* #4a6fa5 */
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 30 15% 90%; /* близко к #e8e4df */
+    --sidebar-accent-foreground: 0 0% 17%;
+    --sidebar-border: 30 28% 77%; /* близко к #d4c4b0 */
+    --sidebar-ring: 210 44% 65%;
+  }
+
+  .dark {
+    --chart-1: 213 58% 64%; /* #6b9dd9 */
+    --chart-2: 210 62% 73%; /* #8fb8e8 */
+    --chart-3: 29 27% 54%; /* #a6896b */
+    --chart-4: 30 66% 72%; /* #e8b88a */
+    --chart-5: 30 15% 42%; /* #7a6b5a */
+    --sidebar-background: 212 24% 24%; /* близко к #2d3a4a */
+    --sidebar-foreground: 0 0% 88%; /* близко к #e0e0e0 */
+    --sidebar-primary: 213 58% 64%;
+    --sidebar-primary-foreground: 0 0% 17%;
+    --sidebar-accent: 210 21% 29%; /* близко к #3a4a5a */
+    --sidebar-accent-foreground: 0 0% 88%;
+    --sidebar-border: 30 15% 48%; /* близко к #8b7a6a */
+    --sidebar-ring: 210 62% 73%;
+  }
+}
+
+@layer utilities {
+  .shadow-inner-right {
+    box-shadow: inset -9px 0 6px -1px rgb(0 0 0 / 0.02);
+  }
+
+  .shadow-inner-left {
+    box-shadow: inset 9px 0 6px -1px rgb(0 0 0 / 0.02);
+  }
+
+  /* Темнее трек и заметнее ползунок для тумблеров темы */
+  .toggle-track {
+    background-color: rgba(0, 0, 0, 0.16); /* светлая тема: темнее трек */
+    border: 1px solid var(--border);
+  }
+  .dark .toggle-track {
+    background-color: rgba(255, 255, 255, 0.22); /* тёмная тема: светлый трек */
+    border-color: var(--border);
+  }
+
+  .toggle-thumb {
+    background-color: var(--card);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
+  }
+  .dark .toggle-thumb {
+    background-color: var(--card);
+    box-shadow: none;
+  }
+
+  .dark .chat-input {
+    /*border-top: oklch(1 0 0) 1px;*/
+  }
+}

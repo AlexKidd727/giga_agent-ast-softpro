@@ -1,0 +1,37 @@
+import React, { createContext, useContext, PropsWithChildren } from "react";
+import { useRag } from "../hooks/use-rag";
+import { useEffect } from "react";
+import { session } from "@/components/rag/utils.ts";
+
+type RagContextType = ReturnType<typeof useRag>;
+
+const RagContext = createContext<RagContextType | null>(null);
+
+export const RagProvider: React.FC<PropsWithChildren> = ({ children }) => {
+  const ragState = useRag();
+
+  useEffect(() => {
+    if (
+      ragState.collections.length > 0 ||
+      ragState.initialSearchExecuted ||
+      !session?.accessToken
+    ) {
+      if (!session?.accessToken) {
+        console.warn("🔍 RAG: accessToken не найден, коллекции не будут загружены");
+      }
+      return;
+    }
+    console.log("🔍 RAG: Начало загрузки коллекций, API URL:", import.meta.env?.VITE_LANGCONNECT_API_URL);
+    ragState.initialFetch(session?.accessToken);
+  }, [session?.accessToken]);
+
+  return <RagContext.Provider value={ragState}>{children}</RagContext.Provider>;
+};
+
+export const useRagContext = () => {
+  const context = useContext(RagContext);
+  if (context === null) {
+    throw new Error("useRagContext must be used within a RagProvider");
+  }
+  return context;
+};
